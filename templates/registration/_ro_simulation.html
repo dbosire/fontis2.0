@@ -1,0 +1,406 @@
+{% comment %}
+Live Reverse-Osmosis desalination process simulation — self-contained (scoped CSS
+vars + IIFE script), embedded on the login page next to the sign-in card.
+Colors/variables are prefixed --ro- and scoped under .ro-sim so nothing here can
+collide with the rest of the app's styles.
+{% endcomment %}
+<div class="ro-sim">
+<style>
+  .ro-sim {
+    --ro-bg: #eaf2f8;
+    --ro-surface: rgba(255, 255, 255, 0.5);
+    --ro-surface-2: rgba(255, 255, 255, 0.3);
+    --ro-ink: #0d2b3e;
+    --ro-ink-muted: #4c7186;
+    --ro-ink-faint: #7b96a6;
+    --ro-line: rgba(13, 114, 179, 0.18);
+    --ro-accent: #0d72b3;
+    --ro-accent-soft: rgba(13, 114, 179, 0.12);
+    --ro-accent-2: #0ea5a5;
+    --ro-accent-2-soft: rgba(14, 165, 165, 0.14);
+    --ro-warn: #c2650a;
+    --ro-warn-soft: rgba(194, 101, 10, 0.14);
+    --ro-salt: #b6472c;
+    --ro-font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --ro-font-mono: "SF Mono", "Cascadia Code", "Roboto Mono", ui-monospace, "Courier New", monospace;
+  }
+  html.dark .ro-sim {
+      --ro-bg: #071a26;
+      --ro-surface: rgba(14, 38, 53, 0.5);
+      --ro-surface-2: rgba(11, 33, 48, 0.35);
+      --ro-ink: #eaf4fa;
+      --ro-ink-muted: #93b3c4;
+      --ro-ink-faint: #628aa0;
+      --ro-line: rgba(63, 169, 232, 0.2);
+      --ro-accent: #3fa9e8;
+      --ro-accent-soft: rgba(63, 169, 232, 0.16);
+      --ro-accent-2: #35d6c4;
+      --ro-accent-2-soft: rgba(53, 214, 196, 0.16);
+      --ro-warn: #e8934a;
+      --ro-warn-soft: rgba(232, 147, 74, 0.16);
+      --ro-salt: #e07a5f;
+  }
+
+  .ro-sim * { box-sizing: border-box; }
+  .ro-sim .tabular { font-variant-numeric: tabular-nums; }
+
+  .ro-window {
+    width: 100%;
+    max-width: 1120px;
+    color: var(--ro-ink);
+  }
+
+  .ro-sim .ro-body { display: flex; flex-direction: column; gap: 26px; }
+
+  .ro-sim .process-mimic {
+    padding: 4px 8px 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  .ro-sim .flow-row {
+    display: grid; grid-template-columns: 148px 60px 158px 60px 168px 60px 220px;
+    align-items: end;
+  }
+  .ro-sim .stage { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .ro-sim .stage-label {
+    font-family: var(--ro-font-display); font-weight: 800; font-size: 11px; letter-spacing: 0.04em;
+    text-align: center; color: var(--ro-ink); line-height: 1.35;
+  }
+  .ro-sim .stage-sub {
+    display: block; font-family: var(--ro-font-mono); font-weight: 400; font-size: 9.5px;
+    letter-spacing: 0; color: var(--ro-ink-muted); margin-top: 2px;
+  }
+  .ro-sim .chip {
+    font-family: var(--ro-font-mono); font-size: 10px; line-height: 1.4;
+    color: var(--ro-accent); background: var(--ro-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--ro-accent) 30%, transparent);
+    border-radius: 8px; padding: 5px 9px; text-align: center; white-space: nowrap;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .ro-sim .chip strong { display: block; font-size: 12px; font-weight: 700; }
+  .ro-sim .chip.warn { color: var(--ro-warn); background: var(--ro-warn-soft); border-color: color-mix(in srgb, var(--ro-warn) 30%, transparent); }
+  .ro-sim .chip.teal { color: var(--ro-accent-2); background: var(--ro-accent-2-soft); border-color: color-mix(in srgb, var(--ro-accent-2) 30%, transparent); }
+
+  .ro-sim .tank {
+    width: 92px; height: 100px; border-radius: 10px 10px 16px 16px;
+    border: 2px solid var(--ro-accent); position: relative; overflow: hidden; background: var(--ro-surface);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .ro-sim .tank .water {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, var(--ro-accent) 0%, color-mix(in srgb, var(--ro-accent) 75%, #002a44) 100%);
+  }
+  .ro-sim .tank .water::before {
+    content: ""; position: absolute; top: -3px; left: 0; right: 0; height: 6px;
+    background: inherit; border-radius: 50%; opacity: 0.6;
+  }
+  .ro-sim .tank-caption {
+    font-family: var(--ro-font-mono); font-weight: 700; font-size: 11px; color: #fff;
+    position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; z-index: 2;
+  }
+  .ro-sim .tank.brine .water { background: linear-gradient(180deg, var(--ro-warn) 0%, color-mix(in srgb, var(--ro-warn) 70%, #401a00) 100%); height: 46%; }
+  .ro-sim .tank.intake .water { height: 68%; }
+  .ro-sim .tank.product .water { background: linear-gradient(180deg, var(--ro-accent-2) 0%, color-mix(in srgb, var(--ro-accent-2) 70%, #003330) 100%); height: 74%; }
+
+  .ro-sim .pipe {
+    position: relative; height: 10px; background: var(--ro-surface-2); border: 1px solid var(--ro-line);
+    border-radius: 6px; align-self: center; overflow: hidden;
+  }
+  .ro-sim .pipe.raw { background: color-mix(in srgb, var(--ro-accent) 14%, var(--ro-surface-2)); }
+  .ro-sim .pipe .flow-dot {
+    position: absolute; top: 50%; width: 5px; height: 5px; border-radius: 50%;
+    transform: translate(-50%, -50%); animation: ro-pipe-flow linear infinite;
+  }
+  @keyframes ro-pipe-flow { from { left: -5%; } to { left: 105%; } }
+
+  .ro-sim .filters { display: flex; gap: 10px; align-items: flex-end; }
+  .ro-sim .filter {
+    width: 34px; height: 76px; border-radius: 8px; border: 2px solid var(--ro-accent);
+    background: repeating-linear-gradient(180deg, var(--ro-surface) 0 6px, var(--ro-accent-soft) 6px 12px);
+    position: relative; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .ro-sim .filter.carbon { border-color: var(--ro-ink-muted); background: repeating-linear-gradient(180deg, var(--ro-surface) 0 5px, color-mix(in srgb, var(--ro-ink-muted) 22%, transparent) 5px 10px); }
+
+  .ro-sim .pump-gauge { position: relative; width: 74px; height: 74px; }
+  .ro-sim .pump-gauge svg { display: block; }
+  .ro-sim .needle { transform-origin: 37px 37px; animation: ro-needle-live 4.2s ease-in-out infinite; }
+  @keyframes ro-needle-live { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(10deg); } }
+
+  .ro-sim .membrane-unit { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ro-sim .membrane-cyl {
+    width: 168px; height: 62px; border-radius: 31px; border: 2px solid var(--ro-accent);
+    background: linear-gradient(180deg, var(--ro-accent-soft), var(--ro-surface));
+    position: relative; overflow: hidden; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .ro-sim .membrane-cyl .stripe { position: absolute; top: 0; bottom: 0; width: 2px; background: color-mix(in srgb, var(--ro-accent) 40%, transparent); }
+  .ro-sim .membrane-cyl .mem-dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; top: 50%; transform: translateY(-50%); animation: ro-pipe-flow linear infinite; }
+
+  .ro-sim .membrane-zoom {
+    width: 190px; height: 190px; border-radius: 50%; border: 2px solid var(--ro-line);
+    background: var(--ro-surface-2); position: relative; overflow: hidden;
+    box-shadow: inset 0 0 0 6px var(--ro-surface);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .ro-sim .membrane-zoom .barrier { position: absolute; top: 0; bottom: 0; left: 50%; width: 6px; margin-left: -3px; background: var(--ro-accent); }
+  .ro-sim .ion { position: absolute; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--ro-font-mono); }
+  .ro-sim .ion.salt { width: 15px; height: 15px; background: var(--ro-salt); color: #fff; font-size: 7px; font-weight: 700; animation: ro-jitter 3.4s ease-in-out infinite; }
+  .ro-sim .ion.water-mol { width: 8px; height: 8px; background: var(--ro-accent); opacity: 0.75; animation: ro-jitter 2.6s ease-in-out infinite; }
+  @keyframes ro-jitter {
+    0%, 100% { transform: translate(0,0); } 25% { transform: translate(2px,-2px); }
+    50% { transform: translate(-2px,1px); } 75% { transform: translate(1px,2px); }
+  }
+  .ro-sim .zoom-label {
+    font-family: var(--ro-font-display); font-weight: 800; font-size: 10px; letter-spacing: 0.04em;
+    text-align: center; color: var(--ro-ink);
+  }
+
+  .ro-sim .outputs { display: flex; gap: 46px; margin-top: 22px; padding-left: 30px; }
+  .ro-sim .output-branch { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .ro-sim .branch-arrow { color: var(--ro-ink-faint); }
+
+  .ro-sim .instrument-panel {
+    padding: 0 8px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .ro-sim .instrument-panel h3 {
+    margin: 0; font-family: var(--ro-font-display); font-weight: 800; font-size: 12px;
+    letter-spacing: 0.08em; color: var(--ro-accent); line-height: 1.4;
+  }
+  .ro-sim .gauges-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .ro-sim .sparkline-card {
+    flex: 1 1 190px; min-width: 160px;
+    background: var(--ro-surface); border: 1px solid var(--ro-line); border-radius: 10px; padding: 10px 12px 8px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .ro-sim .sparkline-card p {
+    margin: 0 0 6px; font-family: var(--ro-font-mono); font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.03em; color: var(--ro-ink-muted);
+  }
+  .ro-sim .sparkline-card .value { font-family: var(--ro-font-mono); font-size: 15px; font-weight: 700; color: var(--ro-ink); }
+  .ro-sim .sparkline-card svg { display: block; width: 100%; height: 46px; }
+
+  .ro-sim .recovery-card {
+    flex: 1 1 190px; min-width: 160px; display: flex; align-items: center; gap: 10px;
+    background: var(--ro-surface); border: 1px solid var(--ro-line); border-radius: 10px; padding: 12px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .ro-sim .recovery-card .drop { color: var(--ro-accent-2); flex-shrink: 0; }
+  .ro-sim .recovery-card .label { font-family: var(--ro-font-mono); font-size: 10px; color: var(--ro-ink-muted); }
+  .ro-sim .recovery-card .value { font-family: var(--ro-font-mono); font-weight: 800; font-size: 18px; color: var(--ro-ink); }
+
+  .ro-sim .footer-wordmark {
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    padding: 4px 8px 0; color: var(--ro-ink-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ro-sim .needle, .ro-sim .ion, .ro-sim .flow-dot, .ro-sim .mem-dot { animation: none !important; }
+  }
+</style>
+
+<div class="ro-window">
+  <div class="ro-body">
+    <div class="process-mimic">
+      <div class="flow-row">
+        <div class="stage">
+          <div class="tank intake"><div class="water"></div><div class="tank-caption">Blue&nbsp;Water</div></div>
+          <div class="stage-label">SEA WATER INTAKE<span class="stage-sub">Raw Sea Water<br>~35,000 ppm TDS</span></div>
+        </div>
+
+        <div class="pipe raw" id="roPipe1">
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:2.3s;animation-delay:0s;top:50%"></div>
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:2.3s;animation-delay:0.8s;top:50%"></div>
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:2.3s;animation-delay:1.6s;top:50%"></div>
+        </div>
+
+        <div class="stage">
+          <div class="chip">FEED TDS<strong>34,800 ppm</strong></div>
+          <div class="filters">
+            <div class="filter"></div>
+            <div class="filter carbon"></div>
+          </div>
+          <div class="stage-label">PRE-TREATMENT<span class="stage-sub">Sediment + Carbon</span></div>
+        </div>
+
+        <div class="pipe raw" id="roPipe2">
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:2s;animation-delay:0.2s;top:50%"></div>
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:2s;animation-delay:1.2s;top:50%"></div>
+        </div>
+
+        <div class="stage">
+          <div class="chip">RO INLET PRESSURE<strong>820 PSI</strong></div>
+          <div class="pump-gauge">
+            <svg width="74" height="74" viewBox="0 0 74 74">
+              <circle cx="37" cy="37" r="30" fill="var(--ro-surface)" stroke="var(--ro-line)" stroke-width="2"/>
+              <path d="M14 50 A30 30 0 0 1 60 50" fill="none" stroke="var(--ro-accent-2)" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+              <path d="M14 50 A30 30 0 0 1 37 8" fill="none" stroke="var(--ro-warn)" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+              <g class="needle"><line x1="37" y1="37" x2="37" y2="14" stroke="var(--ro-ink)" stroke-width="3" stroke-linecap="round"/></g>
+              <circle cx="37" cy="37" r="4.5" fill="var(--ro-ink)"/>
+            </svg>
+          </div>
+          <div class="stage-label">HIGH-PRESSURE PUMP<span class="stage-sub">&gt;800 PSI</span></div>
+        </div>
+
+        <div class="pipe raw" id="roPipe3">
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:1.6s;animation-delay:0s;top:50%"></div>
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:1.6s;animation-delay:0.7s;top:50%"></div>
+          <div class="flow-dot" style="background:var(--ro-accent);animation-duration:1.6s;animation-delay:1.4s;top:50%"></div>
+        </div>
+
+        <div class="stage membrane-unit">
+          <div class="membrane-cyl" id="roMembraneCyl">
+            <div class="stripe" style="left:20%"></div>
+            <div class="stripe" style="left:40%"></div>
+            <div class="stripe" style="left:60%"></div>
+            <div class="stripe" style="left:80%"></div>
+          </div>
+          <div class="stage-label">REVERSE OSMOSIS<br>MEMBRANE UNIT</div>
+        </div>
+      </div>
+
+      <div class="outputs">
+        <div class="output-branch">
+          <svg class="branch-arrow" width="16" height="26" viewBox="0 0 16 26" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v18M2 14l6 8 6-8"/></svg>
+          <div class="chip warn">CONCENTRATE (REJECT)<strong>~70,000 ppm TDS</strong></div>
+          <div class="chip warn">FLOW<strong>150 m&sup3;/h</strong></div>
+          <div class="tank brine"><div class="water"></div><div class="tank-caption">Brine</div></div>
+          <div class="stage-label">BRINE DISCHARGE<br>/ DISPOSAL</div>
+        </div>
+        <div class="output-branch">
+          <svg class="branch-arrow" width="16" height="26" viewBox="0 0 16 26" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2v18M2 14l6 8 6-8"/></svg>
+          <div class="chip teal">PERMEATE (PRODUCT)<strong>&lt;300 ppm TDS</strong></div>
+          <div class="tank product"><div class="water"></div><div class="tank-caption">Clean</div></div>
+          <div class="stage-label">PRODUCT WATER TANK</div>
+        </div>
+      </div>
+
+      <div class="membrane-zoom-row" style="display:flex; align-items:center; gap:20px; margin-top:24px; padding-left:8px;">
+        <div class="membrane-zoom">
+          <div class="barrier"></div>
+          <div class="ion salt" style="left:22%; top:20%;">Na</div>
+          <div class="ion salt" style="left:34%; top:55%;">Cl</div>
+          <div class="ion salt" style="left:16%; top:72%;">Na</div>
+          <div class="ion water-mol" style="left:28%; top:35%;"></div>
+          <div class="ion water-mol" style="left:20%; top:50%;"></div>
+          <div class="ion water-mol" style="left:38%; top:20%;"></div>
+          <div class="ion water-mol" style="left:64%; top:38%;"></div>
+          <div class="ion water-mol" style="left:72%; top:58%;"></div>
+          <div class="ion water-mol" style="left:60%; top:65%;"></div>
+        </div>
+        <div>
+          <div class="zoom-label">SEMI-PERMEABLE<br>MEMBRANE</div>
+          <p style="font-family:var(--ro-font-mono); font-size:10px; color:var(--ro-ink-muted); max-width:170px; line-height:1.5; margin-top:8px;">
+            Water molecules pass through; dissolved Na&sup1;/Cl&sup1; ions are rejected and concentrated on the feed side.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <aside class="instrument-panel">
+      <h3>RO DESALINATION SIMULATION</h3>
+
+      <div class="gauges-row">
+        <div class="sparkline-card">
+          <p>MEMBRANE FLUX (L/h)</p>
+          <div class="value tabular" id="roFluxValue">—</div>
+          <svg viewBox="0 0 200 46" preserveAspectRatio="none"><polyline id="roFluxLine" points="" fill="none" stroke="var(--ro-accent)" stroke-width="2"/><polygon id="roFluxFill" points="" fill="var(--ro-accent)" opacity="0.12"/></svg>
+        </div>
+
+        <div class="sparkline-card">
+          <p>REJECTION %</p>
+          <div class="value tabular" id="roRejValue">—</div>
+          <svg viewBox="0 0 200 46" preserveAspectRatio="none"><polyline id="roRejLine" points="" fill="none" stroke="var(--ro-accent-2)" stroke-width="2"/><polygon id="roRejFill" points="" fill="var(--ro-accent-2)" opacity="0.14"/></svg>
+        </div>
+
+        <div class="sparkline-card">
+          <p>ENERGY CONSUMPTION (kWh/m&sup3;)</p>
+          <div class="value tabular" id="roEnergyValue">—</div>
+          <svg viewBox="0 0 200 46" preserveAspectRatio="none"><polyline id="roEnergyLine" points="" fill="none" stroke="var(--ro-warn)" stroke-width="2"/><polygon id="roEnergyFill" points="" fill="var(--ro-warn)" opacity="0.14"/></svg>
+        </div>
+
+        <div class="recovery-card">
+          <svg class="drop" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C12 2 5 11 5 15.5C5 19.6 8.4 23 12 23C15.6 23 19 19.6 19 15.5C19 11 12 2 12 2Z"/></svg>
+          <div>
+            <div class="label">RECOVERY RATE</div>
+            <div class="value tabular" id="roRecoveryValue">60%</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="footer-wordmark">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C12 2 5 11 5 15.5C5 19.6 8.4 23 12 23C15.6 23 19 19.6 19 15.5C19 11 12 2 12 2Z"/></svg>
+  </div>
+</div>
+</div>
+
+<script>
+(function () {
+  var cyl = document.getElementById('roMembraneCyl');
+  for (var i = 0; i < 6; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'mem-dot';
+    var isPure = i % 2 === 0;
+    dot.style.background = isPure ? 'var(--ro-accent-2)' : (i % 3 === 0 ? 'var(--ro-salt)' : 'var(--ro-accent)');
+    dot.style.animationDuration = (1.8 + Math.random() * 0.8) + 's';
+    dot.style.animationDelay = (i * 0.35) + 's';
+    dot.style.top = (30 + Math.random() * 40) + '%';
+    cyl.appendChild(dot);
+  }
+
+  function makeSeries(base, len) {
+    var arr = [];
+    for (var i = 0; i < len; i++) arr.push(base);
+    return arr;
+  }
+  function step(series, base, spread, drift) {
+    var last = series[series.length - 1];
+    var next = last + (Math.random() - 0.5) * spread + drift;
+    next = Math.max(base - spread * 3, Math.min(base + spread * 3, next));
+    series.push(next);
+    series.shift();
+    return series;
+  }
+  function render(lineEl, fillEl, series, min, max) {
+    var w = 200, h = 46;
+    var pts = series.map(function (v, i) {
+      var x = (i / (series.length - 1)) * w;
+      var y = h - ((v - min) / (max - min)) * h;
+      y = Math.max(2, Math.min(h - 2, y));
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    lineEl.setAttribute('points', pts.join(' '));
+    fillEl.setAttribute('points', '0,' + h + ' ' + pts.join(' ') + ' ' + w + ',' + h);
+  }
+
+  var len = 24;
+  var flux = makeSeries(178, len);
+  var rejection = makeSeries(98.4, len);
+  var energy = makeSeries(2.9, len);
+
+  var fluxLine = document.getElementById('roFluxLine'), fluxFill = document.getElementById('roFluxFill'), fluxValue = document.getElementById('roFluxValue');
+  var rejLine = document.getElementById('roRejLine'), rejFill = document.getElementById('roRejFill'), rejValue = document.getElementById('roRejValue');
+  var energyLine = document.getElementById('roEnergyLine'), energyFill = document.getElementById('roEnergyFill'), energyValue = document.getElementById('roEnergyValue');
+  var recoveryValue = document.getElementById('roRecoveryValue');
+
+  function tick() {
+    step(flux, 178, 6, (Math.random() - 0.48) * 1.5);
+    step(rejection, 98.4, 0.3, 0);
+    step(energy, 2.9, 0.15, 0);
+
+    render(fluxLine, fluxFill, flux, 150, 210);
+    render(rejLine, rejFill, rejection, 97, 99.5);
+    render(energyLine, energyFill, energy, 2.4, 3.4);
+
+    fluxValue.textContent = flux[flux.length - 1].toFixed(0) + ' L/h';
+    rejValue.textContent = rejection[rejection.length - 1].toFixed(1) + '%';
+    energyValue.textContent = energy[energy.length - 1].toFixed(2) + ' kWh/m³';
+    recoveryValue.textContent = (58 + Math.random() * 4).toFixed(0) + '%';
+  }
+
+  tick();
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    setInterval(tick, 1200);
+  }
+})();
+</script>

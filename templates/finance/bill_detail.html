@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Bill {{ bill.bill_number|default:bill.pk }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Bill {{ bill.bill_number|default:bill.pk }}</h2>
+            {% if bill.status == "paid" %}{% status_badge "Paid" "success" %}
+            {% elif bill.status == "partial" %}{% status_badge "Partial" "warning" %}
+            {% else %}{% status_badge "Unpaid" "danger" %}{% endif %}
+        </div>
+        <dl class="grid grid-cols-2 gap-3 text-sm">
+            <div><dt class="text-gray-500 dark:text-slate-400">Supplier</dt><dd class="text-gray-900 dark:text-white">{{ bill.supplier.name|default:"—" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Date</dt><dd class="text-gray-900 dark:text-white">{{ bill.bill_date|date:"d M Y" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Amount</dt><dd class="text-gray-900 dark:text-white">{{ bill.amount|floatformat:2 }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Balance Due</dt><dd class="text-gray-900 dark:text-white font-semibold">{{ bill.balance_due|floatformat:2 }}</dd></div>
+        </dl>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Payments</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for payment in bill.payments.all %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ payment.payment_date|date:"d M Y" }}</td>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ payment.get_payment_method_display }}</td>
+                    <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ payment.amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="px-5 py-6 text-center text-gray-400 dark:text-slate-500" colspan="3">No payments recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if bill.balance_due > 0 %}
+        <form method="post" action="{% url 'finance:bill_payment_add' bill.pk %}" class="p-4 border-t border-gray-200 dark:border-slate-700 flex items-end gap-3 flex-wrap">
+            {% csrf_token %}
+            <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ form.amount.label }}</label>{{ form.amount }}</div>
+            <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ form.payment_date.label }}</label>{{ form.payment_date }}</div>
+            <div><label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ form.payment_method.label }}</label>{{ form.payment_method }}</div>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Record Payment</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

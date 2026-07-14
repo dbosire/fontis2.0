@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block page_title %}Tax Rates{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Tax Rates" add_url="finance:tax_rate_add" add_label="Add Rate" %}
+<p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4"><a href="{% url 'finance:vat_return' %}" class="text-blue-600 hover:underline">View VAT return →</a></p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Rate</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Default</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for rate in tax_rates %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ rate.name }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{% widthratio rate.rate 1 100 %}%</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{% if rate.is_default %}Yes{% else %}—{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No tax rates configured yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

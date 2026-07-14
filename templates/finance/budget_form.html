@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block page_title %}New Budget{% endblock %}
+{% block content %}
+<style>.formset-row input[name$="-DELETE"] { display: none; }</style>
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">New Budget</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            {% include "core/components/form_field.html" with field=form.period_start %}
+            {% include "core/components/form_field.html" with field=form.period_end %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.name %}
+        <div class="flex items-center gap-2 mt-2">{{ form.is_active }}<label class="text-sm text-gray-700 dark:text-slate-300">Active</label></div>
+
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mt-6 mb-2">Budget Lines</h3>
+        {{ formset.management_form }}
+        <div class="space-y-2" id="formset-rows">
+            {% for line_form in formset %}
+                <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2">
+                    <div class="col-span-8">{{ line_form.account }}</div>
+                    <div class="col-span-3">{{ line_form.budgeted_amount }}</div>
+                    <div class="col-span-1 text-right">
+                        {{ line_form.id }}
+                        {{ line_form.DELETE }}
+                        <button type="button" class="remove-row-btn text-red-600 hover:text-red-800">✕</button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <template id="empty-form-template">
+            <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2">
+                <div class="col-span-8">{{ formset.empty_form.account }}</div>
+                <div class="col-span-3">{{ formset.empty_form.budgeted_amount }}</div>
+                <div class="col-span-1 text-right">
+                    {{ formset.empty_form.id }}
+                    {{ formset.empty_form.DELETE }}
+                    <button type="button" class="remove-row-btn text-red-600 hover:text-red-800">✕</button>
+                </div>
+            </div>
+        </template>
+        <button type="button" id="add-row-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add account</button>
+
+        <div class="flex justify-end gap-3 pt-6">
+            <a href="{% url 'finance:budgets' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save Budget</button>
+        </div>
+    </form>
+</div>
+<script>
+(function () {
+    const rowsContainer = document.getElementById('formset-rows');
+    const totalFormsInput = document.getElementById('id_lines-TOTAL_FORMS');
+    rowsContainer.addEventListener('click', function (e) {
+        const btn = e.target.closest('.remove-row-btn');
+        if (!btn) return;
+        const row = btn.closest('.formset-row');
+        const deleteInput = row.querySelector('[name$="-DELETE"]');
+        if (deleteInput) deleteInput.checked = true;
+        row.style.display = 'none';
+    });
+    document.getElementById('add-row-btn').addEventListener('click', function () {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const html = document.getElementById('empty-form-template').innerHTML.replaceAll('__prefix__', formIndex);
+        rowsContainer.insertAdjacentHTML('beforeend', html);
+        totalFormsInput.value = formIndex + 1;
+    });
+})();
+</script>
+{% endblock %}

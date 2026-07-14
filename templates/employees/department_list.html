@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_title %}Departments{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Department</h2>
+            <form method="post" action="{% url 'employees:department_add' %}" class="space-y-4">
+                {% csrf_token %}
+                {% include "core/components/form_field.html" with field=form.name %}
+                {% include "core/components/form_field.html" with field=form.description %}
+                <button type="submit" class="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2">
+                    Save Department
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-slate-800/60">
+                    <tr>
+                        <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                        <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Description</th>
+                        <th class="px-5 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                    {% for department in departments %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <td class="px-5 py-2 text-gray-900 dark:text-white">{{ department.name }}</td>
+                        <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ department.description|default:"—" }}</td>
+                        <td class="px-5 py-2 text-right">
+                            <a href="{% url 'employees:department_delete' department.pk %}" class="text-red-600 hover:underline">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No departments yet — add one on the left.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

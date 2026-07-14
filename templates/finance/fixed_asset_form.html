@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block page_title %}Add Fixed Asset{% endblock %}
+{% block content %}
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Fixed Asset</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.name %}
+            {% include "core/components/form_field.html" with field=form.category %}
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+            {% include "core/components/form_field.html" with field=form.purchase_date %}
+            {% include "core/components/form_field.html" with field=form.cost %}
+            {% include "core/components/form_field.html" with field=form.salvage_value %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.useful_life_years %}
+            {% include "core/components/form_field.html" with field=form.depreciation_method %}
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+            {% include "core/components/form_field.html" with field=form.asset_gl_account %}
+            {% include "core/components/form_field.html" with field=form.depreciation_expense_account %}
+            {% include "core/components/form_field.html" with field=form.accumulated_depreciation_account %}
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'finance:fixed_assets' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

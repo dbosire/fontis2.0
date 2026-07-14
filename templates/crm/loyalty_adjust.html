@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}Adjust Loyalty Points{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{{ loyalty.contact.name }}</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Current balance: <span class="font-semibold text-gray-900 dark:text-white">{{ loyalty.points_balance|floatformat:2 }} points</span></p>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.points %}
+                {% include "core/components/form_field.html" with field=form.transaction_type %}
+            </div>
+            {% include "core/components/form_field.html" with field=form.note %}
+            <div class="flex justify-end gap-3 pt-2">
+                <a href="{% url 'crm:loyalty' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Back</a>
+                <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Apply</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Recent transactions</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-slate-800/60">
+                <tr>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                    <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Points</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Note</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for tx in transactions %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ tx.date_created|date:"d M Y H:i" }}</td>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ tx.get_transaction_type_display }}</td>
+                    <td class="px-5 py-2 text-right {% if tx.points < 0 %}text-red-600{% else %}text-green-600{% endif %} font-medium">{{ tx.points|floatformat:2 }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ tx.note|default:tx.reference|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No transactions yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

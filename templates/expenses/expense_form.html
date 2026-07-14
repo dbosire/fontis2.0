@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Expense{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}Add{% endif %} Expense</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.expense_name %}
+        {% include "core/components/form_field.html" with field=form.category %}
+        {% include "core/components/form_field.html" with field=form.amount %}
+        {% include "core/components/form_field.html" with field=form.date_created %}
+        {% include "core/components/form_field.html" with field=form.status %}
+        {% include "core/components/form_field.html" with field=form.employee %}
+        <p class="text-xs text-gray-500 dark:text-slate-400 -mt-2">Optional — attribute this expense to an employee (e.g. a salary advance or a damage charge) so it's automatically deducted from their payroll.</p>
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'expenses:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

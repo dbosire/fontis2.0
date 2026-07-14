@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block page_title %}New Purchase Request{% endblock %}
+{% block content %}
+<style>.formset-row input[name$="-DELETE"] { display: none; }</style>
+<div class="max-w-3xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">New Purchase Request</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            {% include "core/components/form_field.html" with field=form.department %}
+            {% include "core/components/form_field.html" with field=form.needed_by_date %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.notes %}
+
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mt-6 mb-2">Items</h3>
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}<p class="text-sm text-red-600 mb-2">{{ formset.non_form_errors.0 }}</p>{% endif %}
+
+        <div class="grid grid-cols-12 gap-2 px-2 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+            <div class="col-span-5">Material</div>
+            <div class="col-span-2">Quantity</div>
+            <div class="col-span-4">Notes</div>
+            <div class="col-span-1"></div>
+        </div>
+
+        <div class="space-y-2" id="formset-rows">
+            {% for line_form in formset %}
+                <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2">
+                    <div class="col-span-5">{{ line_form.material }}</div>
+                    <div class="col-span-2">{{ line_form.quantity }}</div>
+                    <div class="col-span-4">{{ line_form.notes }}</div>
+                    <div class="col-span-1 text-right">
+                        {{ line_form.id }}
+                        {{ line_form.DELETE }}
+                        <button type="button" class="remove-row-btn text-red-600 hover:text-red-800" title="Remove item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <template id="empty-form-template">
+            <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2">
+                <div class="col-span-5">{{ formset.empty_form.material }}</div>
+                <div class="col-span-2">{{ formset.empty_form.quantity }}</div>
+                <div class="col-span-4">{{ formset.empty_form.notes }}</div>
+                <div class="col-span-1 text-right">
+                    {{ formset.empty_form.id }}
+                    {{ formset.empty_form.DELETE }}
+                    <button type="button" class="remove-row-btn text-red-600 hover:text-red-800" title="Remove item">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <button type="button" id="add-row-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add item</button>
+
+        <div class="flex justify-end gap-3 pt-6">
+            <a href="{% url 'purchasing:requests' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Submit Request</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    const rowsContainer = document.getElementById('formset-rows');
+    const totalFormsInput = document.getElementById('id_lines-TOTAL_FORMS');
+
+    function fieldIn(row, suffix) {
+        return row.querySelector('[name$="' + suffix + '"]');
+    }
+
+    rowsContainer.addEventListener('click', function (e) {
+        const removeBtn = e.target.closest('.remove-row-btn');
+        if (!removeBtn) return;
+        const row = removeBtn.closest('.formset-row');
+        const deleteInput = fieldIn(row, '-DELETE');
+        if (deleteInput) deleteInput.checked = true;
+        row.style.display = 'none';
+    });
+
+    document.getElementById('add-row-btn').addEventListener('click', function () {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const templateHtml = document.getElementById('empty-form-template').innerHTML.replaceAll('__prefix__', formIndex);
+        rowsContainer.insertAdjacentHTML('beforeend', templateHtml);
+        totalFormsInput.value = formIndex + 1;
+    });
+})();
+</script>
+{% endblock %}

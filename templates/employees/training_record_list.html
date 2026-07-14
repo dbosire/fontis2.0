@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Training Records{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Training Records" add_url="employees:training_record_add" add_label="Add Record" %}
+<p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4"><a href="{% url 'employees:training_programs' %}" class="text-blue-600 hover:underline">Manage training programs →</a></p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Program</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Started</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Completed</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Certificate Expiry</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for record in records %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ record.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ record.program.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ record.start_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ record.completion_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if record.status == "completed" %}{% status_badge "Completed" "success" %}
+                    {% elif record.status == "failed" %}{% status_badge "Failed" "danger" %}
+                    {% else %}{% status_badge "Enrolled" "info" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ record.certificate_expiry|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'employees:training_record_edit' record.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'employees:training_record_delete' record.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No training records yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

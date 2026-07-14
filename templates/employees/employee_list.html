@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Employees{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Employees" add_url="employees:add" add_label="Add Employee" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">#</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Department</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Role</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for employee in employees %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ employee.employee_number }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white"><a href="{% url 'employees:detail' employee.pk %}" class="hover:underline">{{ employee.get_full_name }}</a></td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ employee.department.name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ employee.role.name|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if employee.status == "active" %}{% status_badge "Active" "success" %}
+                    {% elif employee.status == "inactive" %}{% status_badge "Inactive" "warning" %}
+                    {% else %}{% status_badge "Terminated" "danger" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'employees:edit' employee.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'employees:delete' employee.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No employees yet — add your first one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

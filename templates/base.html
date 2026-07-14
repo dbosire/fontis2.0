@@ -1,0 +1,123 @@
+{% load static django_htmx ui %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-100 dark:from-slate-950 dark:via-blue-950 dark:to-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ fontis_site.short_name }}{% endblock %}</title>
+    <script>
+        /* Runs synchronously before first paint to avoid a flash of the wrong
+           theme: an explicit choice in localStorage wins, otherwise fall back
+           to the OS preference. The toggle button in the header updates the
+           same localStorage key so this stays correct on the next visit. */
+        (function () {
+            var stored = localStorage.getItem('theme');
+            var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (isDark) document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% versioned_static 'css/dist/styles.css' %}">
+    <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+    <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full" x-data="{ sidebarOpen: false }">
+<div class="flex h-full">
+    {% include "partials/sidebar.html" %}
+
+    <div class="flex-1 flex flex-col min-w-0">
+        <header class="h-16 shrink-0 border-b border-white/60 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl flex items-center justify-between px-4 sm:px-6">
+            <div class="flex items-center gap-3 min-w-0">
+                <button @click="sidebarOpen = true" class="lg:hidden text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <h1 class="text-base font-semibold text-gray-900 dark:text-white truncate">{% block page_title %}{% endblock %}</h1>
+            </div>
+
+            <div class="flex items-center gap-4 shrink-0">
+                <button type="button" id="theme-toggle" aria-label="Toggle dark mode"
+                        class="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200">
+                    <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+                    <svg class="hidden h-5 w-5 dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+                </button>
+
+                {% if user.is_authenticated %}
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="relative text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200" title="Alerts">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                        {% if inventory_alerts %}
+                            <span class="absolute -top-1 -right-1 h-4 min-w-[1rem] px-1 rounded-full bg-red-600 text-white text-[10px] leading-4 text-center font-semibold">{{ inventory_alerts|length }}</span>
+                        {% endif %}
+                    </button>
+                    <div x-show="open" @click.outside="open = false" x-cloak
+                         class="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg bg-white/90 dark:bg-slate-800/95 backdrop-blur-md shadow-lg border border-white/60 dark:border-white/10 py-1 text-sm z-10">
+                        {% if inventory_alerts %}
+                            {% for alert in inventory_alerts %}
+                                <a href="{{ alert.url }}" class="block px-4 py-2.5 border-b border-gray-100 dark:border-slate-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-slate-700/60">
+                                    <span class="flex items-start gap-2">
+                                        <span class="mt-1 h-2 w-2 rounded-full shrink-0 {% if alert.tone == 'danger' %}bg-red-500{% else %}bg-amber-500{% endif %}"></span>
+                                        <span class="text-gray-700 dark:text-slate-200">{{ alert.message }}</span>
+                                    </span>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <p class="px-4 py-6 text-center text-gray-400 dark:text-slate-500">No alerts right now.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white">
+                        <span class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                            {{ user.firstname|slice:":1" }}{{ user.lastname|slice:":1" }}
+                        </span>
+                        <span class="hidden sm:block">{{ user.get_full_name }}</span>
+                    </button>
+                    <div x-show="open" @click.outside="open = false" x-cloak
+                         class="absolute right-0 mt-2 w-44 rounded-lg bg-white/90 dark:bg-slate-800/95 backdrop-blur-md shadow-lg border border-white/60 dark:border-white/10 py-1 text-sm z-10">
+                        <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60">My Account</a>
+                        <form method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left block px-4 py-2 text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/60">Logout</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+        <script>
+            document.getElementById('theme-toggle').addEventListener('click', function () {
+                var isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            });
+        </script>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+            {% if messages %}
+                <div class="mb-4 space-y-2" x-data="{ toasts: {{ messages|length }} }">
+                    {% for message in messages %}
+                        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"
+                             class="rounded-md px-4 py-3 text-sm shadow-sm border
+                                    {% if message.tags == 'success' %}bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-300 border-green-200 dark:border-green-500/30
+                                    {% elif message.tags == 'error' %}bg-red-50 dark:bg-red-500/10 text-red-800 dark:text-red-300 border-red-200 dark:border-red-500/30
+                                    {% elif message.tags == 'warning' %}bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/30
+                                    {% else %}bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-500/30{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+</body>
+</html>

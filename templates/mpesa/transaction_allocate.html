@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Allocate Payment — {{ txn.TransID }}{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Allocate Payment" %}
+<a href="{% url 'mpesa:list' %}" class="text-sm text-blue-600 hover:underline">&larr; Back to Transactions</a>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5 mt-4 mb-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+        <div><p class="text-gray-500 dark:text-slate-400">TransID</p><p class="font-mono text-gray-900 dark:text-white">{{ txn.TransID }}</p></div>
+        <div><p class="text-gray-500 dark:text-slate-400">Amount</p><p class="text-gray-900 dark:text-white font-medium">KES {{ txn.TransAmount|floatformat:2 }}</p></div>
+        <div><p class="text-gray-500 dark:text-slate-400">Payer</p><p class="text-gray-900 dark:text-white">{{ txn.MSISDN }} {{ txn.full_name }}</p></div>
+        <div><p class="text-gray-500 dark:text-slate-400">Bill Ref</p><p class="text-gray-900 dark:text-white">{{ txn.BillRefNumber|default:"—" }}</p></div>
+    </div>
+    <div class="flex flex-wrap gap-6 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800 text-sm">
+        <div><p class="text-gray-500 dark:text-slate-400">Already Allocated</p><p class="text-gray-900 dark:text-white font-medium">KES {{ allocated|floatformat:2 }}</p></div>
+        <div><p class="text-gray-500 dark:text-slate-400">Remaining to Allocate</p><p id="remaining-amount" class="text-blue-900 dark:text-blue-300 font-semibold" data-remaining="{{ remaining }}">KES {{ remaining|floatformat:2 }}</p></div>
+    </div>
+    {% if existing_allocations %}
+    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+        <p class="text-xs uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2">Already Allocated To</p>
+        <ul class="text-sm text-gray-600 dark:text-slate-400 space-y-1">
+            {% for alloc in existing_allocations %}
+            <li>{{ alloc.sale.customer_name }} — KES {{ alloc.amount|floatformat:2 }} ({{ alloc.date_created|date:"d M Y H:i" }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+<form method="post" id="allocate-form">
+    {% csrf_token %}
+
+    <div class="flex flex-wrap items-center gap-3 mb-3 bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-3 sticky top-2 z-10">
+        <input type="text" id="customer-filter" placeholder="Filter by customer name…"
+               class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 flex-1 min-w-[200px]">
+        <span id="selected-count" class="text-sm text-gray-500 dark:text-slate-400">0 selected</span>
+        <span id="selected-total" class="text-sm font-medium text-gray-700 dark:text-slate-300" data-total="0">Total: KES 0.00</span>
+        <button type="submit" id="allocate-btn" disabled
+                class="rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-1.5 transition-colors">
+            Allocate Payment
+        </button>
+    </div>
+
+    <div class="space-y-3">
+        {% for group in groups %}
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden" data-group data-customer="{{ group.customer_name|lower }}">
+            <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-700">
+                <input type="checkbox" class="group-select-all rounded border-gray-300 dark:border-slate-600">
+                <span class="font-medium text-gray-900 dark:text-white">{{ group.customer_name }}</span>
+                <span class="text-xs text-gray-400 dark:text-slate-500">{{ group.sales|length }} debt{{ group.sales|length|pluralize }}</span>
+                <span class="ml-auto font-semibold text-red-600">{{ group.total_amount|floatformat:2 }}</span>
+            </div>
+            <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                    {% for sale in group.sales %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <td class="px-5 py-2 w-8">
+                            <input type="checkbox" name="sale_ids" value="{{ sale.pk }}" data-amount="{{ sale.amount }}" class="debt-row-checkbox rounded border-gray-300 dark:border-slate-600">
+                        </td>
+                        <td class="px-5 py-2 text-gray-700 dark:text-slate-300 w-36">{{ sale.date_created|date:"d M Y" }}</td>
+                        <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</td>
+                        <td class="px-5 py-2 text-right font-medium text-red-600 w-28">{{ sale.amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% empty %}
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 px-5 py-10 text-center text-gray-400 dark:text-slate-500">No outstanding debts.</div>
+        {% endfor %}
+    </div>
+</form>
+
+<script>
+(function () {
+    const rowCheckboxes = document.querySelectorAll('.debt-row-checkbox');
+    const groupCheckboxes = document.querySelectorAll('.group-select-all');
+    const allocateBtn = document.getElementById('allocate-btn');
+    const countEl = document.getElementById('selected-count');
+    const totalEl = document.getElementById('selected-total');
+    const remaining = parseFloat(document.getElementById('remaining-amount').dataset.remaining) || 0;
+    const filterInput = document.getElementById('customer-filter');
+
+    function rowsInGroup(groupCheckbox) {
+        return groupCheckbox.closest('[data-group]').querySelectorAll('.debt-row-checkbox');
+    }
+
+    function updateToolbar() {
+        const checked = Array.from(rowCheckboxes).filter(function (cb) { return cb.checked; });
+        const total = checked.reduce(function (sum, cb) { return sum + parseFloat(cb.dataset.amount || 0); }, 0);
+
+        countEl.textContent = checked.length + ' selected';
+        totalEl.textContent = 'Total: KES ' + total.toFixed(2);
+        totalEl.classList.toggle('text-red-600', total > remaining + 0.01);
+        totalEl.classList.toggle('text-gray-700', total <= remaining + 0.01);
+        totalEl.classList.toggle('dark:text-slate-300', total <= remaining + 0.01);
+
+        allocateBtn.disabled = checked.length === 0 || total > remaining + 0.01;
+
+        groupCheckboxes.forEach(function (gcb) {
+            const rows = rowsInGroup(gcb);
+            const checkedInGroup = Array.from(rows).filter(function (r) { return r.checked; }).length;
+            gcb.checked = checkedInGroup > 0 && checkedInGroup === rows.length;
+            gcb.indeterminate = checkedInGroup > 0 && checkedInGroup < rows.length;
+        });
+    }
+
+    groupCheckboxes.forEach(function (gcb) {
+        gcb.addEventListener('change', function () {
+            rowsInGroup(gcb).forEach(function (cb) { cb.checked = gcb.checked; });
+            updateToolbar();
+        });
+    });
+
+    rowCheckboxes.forEach(function (cb) { cb.addEventListener('change', updateToolbar); });
+
+    filterInput.addEventListener('input', function () {
+        const term = filterInput.value.trim().toLowerCase();
+        document.querySelectorAll('[data-group]').forEach(function (el) {
+            el.style.display = el.dataset.customer.includes(term) ? '' : 'none';
+        });
+    });
+
+    document.getElementById('allocate-form').addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('.debt-row-checkbox:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            return;
+        }
+        if (!confirm('Allocate this payment to ' + checked + ' selected debt(s)?')) {
+            e.preventDefault();
+        }
+    });
+
+    updateToolbar();
+})();
+</script>
+{% endblock %}

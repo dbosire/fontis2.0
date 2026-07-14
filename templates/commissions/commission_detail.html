@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}{{ account.customer.name }} — Commission{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ account.customer.name }}</h2>
+            {% if account.is_window_active %}{% status_badge "Active" "success" %}
+            {% else %}{% status_badge "Expired" "neutral" %}{% endif %}
+        </div>
+        <dl class="grid grid-cols-2 gap-3 text-sm mb-4">
+            <div><dt class="text-gray-500 dark:text-slate-400">Account manager</dt><dd class="text-gray-900 dark:text-white">{{ account.account_manager.get_full_name }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Commission rate</dt><dd class="text-gray-900 dark:text-white">{{ account.commission_rate|floatformat:2 }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Onboarded</dt><dd class="text-gray-900 dark:text-white">{{ account.onboarding_date|date:"d M Y" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Window ends</dt><dd class="text-gray-900 dark:text-white">{{ account.commission_window_end|date:"d M Y" }}</dd></div>
+        </dl>
+        {% if account.notes %}<p class="text-sm text-gray-600 dark:text-slate-400 mb-4">{{ account.notes }}</p>{% endif %}
+        <div class="flex justify-end items-center gap-3 pt-4 border-t border-gray-200 dark:border-slate-700">
+            <span class="text-sm text-gray-500 dark:text-slate-400">Earned to date</span>
+            <span class="text-lg font-semibold text-gray-900 dark:text-white">{{ account.earned_commission|floatformat:2 }}</span>
+        </div>
+        <div class="flex gap-3 mt-4">
+            <a href="{% url 'commissions:edit' account.pk %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Edit</a>
+            <a href="{% url 'commissions:delete' account.pk %}" class="text-sm text-red-600 hover:underline self-center">Delete</a>
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white px-5 pt-4 pb-2">Sales counted toward this commission</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-slate-800/60">
+                <tr>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                    <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for sale in matching_sales %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ sale.date_created|date:"d M Y" }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.get_status_display }}</td>
+                    <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ sale.amount|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No matching sales in the commission window yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

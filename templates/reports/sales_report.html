@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Sales Reports{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Sales Report" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <form method="get" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Type</label>
+            <select name="type" class="block rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="all" {% if filters.type == "all" %}selected{% endif %}>All</option>
+                {% for value, label in type_choices %}
+                    <option value="{{ value }}" {% if filters.type == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Date Start</label>
+            <input type="date" name="date_start" value="{{ filters.date_start }}"
+                   class="block rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Date End</label>
+            <input type="date" name="date_end" value="{{ filters.date_end }}"
+                   class="block rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+            <button type="button" onclick="window.print()" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Print</button>
+        </div>
+    </form>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Details</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-center font-medium text-gray-500 dark:text-slate-400">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for sale in sales %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 align-top">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ sale.date_created|date:"Y-m-d" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ sale.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.get_type_display }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">
+                    {% for item in sale.items.all %}
+                        <div class="flex justify-between gap-4 text-xs">
+                            <span>{{ item.quantity }}&times; {{ item.jar_type.name }}</span>
+                            <span>{{ item.total_amount|floatformat:2 }}</span>
+                        </div>
+                    {% endfor %}
+                </td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ sale.amount|floatformat:0 }}</td>
+                <td class="px-5 py-2 text-center">
+                    {% if sale.status == 1 %}{% status_badge "Cash" "info" %}
+                    {% elif sale.status == 2 %}{% status_badge "M-Pesa" "success" %}
+                    {% else %}{% status_badge "Unpaid" "warning" %}{% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No sales in this date range.</td></tr>
+            {% endfor %}
+        </tbody>
+        {% if sales %}
+        <tfoot>
+            <tr class="bg-gray-50 dark:bg-slate-800/60 font-semibold">
+                <td colspan="4" class="px-5 py-2 text-center text-gray-900 dark:text-white">Total</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ total_amount|floatformat:0 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+{% endblock %}

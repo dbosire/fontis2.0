@@ -1,0 +1,140 @@
+{% load static ui %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if invalid %}Payment link{% else %}Pay {{ link.customer_name }}{% endif %} — {{ fontis_site.short_name }}</title>
+    <link rel="stylesheet" href="{% versioned_static 'css/dist/styles.css' %}">
+    <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js" defer></script>
+</head>
+<body class="h-full flex items-center justify-center p-4">
+<div class="max-w-md w-full">
+    <div class="flex items-center justify-center gap-3 mb-6">
+        {% if fontis_site.logo %}<img src="{{ MEDIA_URL }}{{ fontis_site.logo }}" alt="logo" class="h-10 w-10 rounded object-cover">{% endif %}
+        <span class="text-lg font-semibold text-gray-900">{{ fontis_site.short_name }}</span>
+    </div>
+
+    {% if invalid %}
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/60 p-8 text-center">
+        <p class="text-gray-700 font-medium">This payment link is invalid or has expired.</p>
+        <p class="text-sm text-gray-500 mt-2">Please contact us if you still need to make a payment.</p>
+    </div>
+
+    {% elif paid %}
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/60 p-8 text-center">
+        <div class="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+        </div>
+        <p class="text-gray-900 font-semibold text-lg">Payment received — thank you!</p>
+        <p class="text-sm text-gray-500 mt-2">KES {{ link.amount|floatformat:2 }} for {{ link.customer_name }}</p>
+        {% if link.mpesa_receipt_number %}<p class="text-xs text-gray-400 mt-1">Receipt: {{ link.mpesa_receipt_number }}</p>{% endif %}
+    </div>
+
+    {% else %}
+    <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-white/60 p-6" id="pay-card">
+        <p class="text-sm text-gray-500">Amount due</p>
+        <p class="text-3xl font-semibold text-gray-900 mb-1">KES {{ link.amount|floatformat:2 }}</p>
+        <p class="text-sm text-gray-500 mb-6">{{ link.customer_name }}</p>
+
+        <div x-data="{ tab: 'stk' }" x-cloak>
+            <div class="flex rounded-md border border-gray-200 overflow-hidden mb-4 text-sm font-medium">
+                <button type="button" @click="tab = 'stk'" :class="tab === 'stk' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'" class="flex-1 py-2">Pay with M-Pesa</button>
+                <button type="button" @click="tab = 'direct'" :class="tab === 'direct' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'" class="flex-1 py-2">Pay Directly</button>
+            </div>
+
+            <div x-show="tab === 'stk'">
+                <p class="text-sm text-gray-600 mb-3">Enter your phone number — we'll send a PIN prompt to your phone.</p>
+                <form id="stk-form" class="space-y-3">
+                    {% csrf_token %}
+                    <input type="tel" name="phone_number" id="phone_number" value="{{ phone_prefill }}" placeholder="0712345678"
+                           class="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                    <button type="submit" id="stk-submit" class="w-full rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2.5">Send Payment Prompt</button>
+                </form>
+                <p id="stk-message" class="text-sm mt-3"></p>
+            </div>
+
+            <div x-show="tab === 'direct'" class="text-sm text-gray-700 space-y-2">
+                <p>Pay via the M-Pesa app or *334# on your phone:</p>
+                <ol class="list-decimal list-inside space-y-1 text-gray-600">
+                    <li>Go to <strong>Lipa na M-Pesa</strong> → <strong>Buy Goods and Services</strong></li>
+                    <li>Enter Till Number: <strong>{{ mpesa_till_number }}</strong></li>
+                    <li>Enter Amount: <strong>KES {{ link.amount|floatformat:0 }}</strong></li>
+                    <li>Enter your M-Pesa PIN and confirm</li>
+                </ol>
+                <p class="text-xs text-amber-600 mt-3">Your payment will be confirmed automatically within a few minutes once received.</p>
+            </div>
+        </div>
+    </div>
+    <p class="text-xs text-gray-400 text-center mt-4">Link expires {{ link.expires_at|date:"d M Y, H:i" }}</p>
+    {% endif %}
+</div>
+
+{% if not invalid and not paid %}
+<script>
+(function () {
+    const form = document.getElementById('stk-form');
+    const submitBtn = document.getElementById('stk-submit');
+    const messageEl = document.getElementById('stk-message');
+    let pollTimer = null;
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending…';
+        messageEl.textContent = '';
+        messageEl.className = 'text-sm mt-3';
+
+        fetch('{% url "mpesa_public:trigger_stk" link.token %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value },
+            body: new URLSearchParams({ phone_number: document.getElementById('phone_number').value }),
+        })
+            .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+            .then(function (result) {
+                if (!result.ok || !result.data.ok) {
+                    messageEl.textContent = result.data.error || 'Something went wrong. Please try again.';
+                    messageEl.className = 'text-sm mt-3 text-red-600';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Payment Prompt';
+                    return;
+                }
+                messageEl.textContent = 'Check your phone and enter your M-Pesa PIN to complete the payment.';
+                messageEl.className = 'text-sm mt-3 text-green-600';
+                startPolling();
+            })
+            .catch(function () {
+                messageEl.textContent = 'Network error — please try again.';
+                messageEl.className = 'text-sm mt-3 text-red-600';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Payment Prompt';
+            });
+    });
+
+    function startPolling() {
+        let attempts = 0;
+        pollTimer = setInterval(function () {
+            attempts += 1;
+            fetch('{% url "mpesa_public:status" link.token %}')
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.status === 'paid') {
+                        clearInterval(pollTimer);
+                        window.location.reload();
+                    } else if (data.status === 'failed' || attempts > 30) {
+                        clearInterval(pollTimer);
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Send Payment Prompt';
+                        if (data.status === 'failed') {
+                            messageEl.textContent = 'Payment was not completed. You can try again.';
+                            messageEl.className = 'text-sm mt-3 text-red-600';
+                        }
+                    }
+                });
+        }, 4000);
+    }
+})();
+</script>
+{% endif %}
+</body>
+</html>

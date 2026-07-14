@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Employee{% endblock %}
+{% block content %}
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}Add{% endif %} Employee</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.employee_number %}
+            {% include "core/components/form_field.html" with field=form.gender %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.first_name %}
+            {% include "core/components/form_field.html" with field=form.last_name %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.phone %}
+            {% include "core/components/form_field.html" with field=form.email %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.id_number %}
+            {% include "core/components/form_field.html" with field=form.date_of_birth %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.address %}
+
+        <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Employment</p>
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.department %}
+                {% include "core/components/form_field.html" with field=form.role %}
+            </div>
+            <div class="grid grid-cols-3 gap-4 mt-4">
+                {% include "core/components/form_field.html" with field=form.employment_type %}
+                {% include "core/components/form_field.html" with field=form.date_hired %}
+                {% include "core/components/form_field.html" with field=form.status %}
+            </div>
+            <div class="mt-4">
+                {% include "core/components/form_field.html" with field=form.date_terminated %}
+            </div>
+        </div>
+
+        <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Payroll details</p>
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.basic_salary %}
+                {% include "core/components/form_field.html" with field=form.bank_name %}
+            </div>
+            <div class="grid grid-cols-3 gap-4 mt-4">
+                {% include "core/components/form_field.html" with field=form.bank_account_number %}
+                {% include "core/components/form_field.html" with field=form.kra_pin %}
+                {% include "core/components/form_field.html" with field=form.nssf_number %}
+            </div>
+            <div class="mt-4">
+                {% include "core/components/form_field.html" with field=form.nhif_number %}
+            </div>
+        </div>
+
+        <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Emergency contact</p>
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.emergency_contact_name %}
+                {% include "core/components/form_field.html" with field=form.emergency_contact_phone %}
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'employees:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

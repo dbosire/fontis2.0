@@ -1,0 +1,321 @@
+{% load static ui %}
+<a href="{% url 'reports:dashboard' %}" class="flex items-center gap-3 px-5 h-16 border-b border-slate-800 shrink-0">
+    {% if fontis_site.logo %}
+        <img src="{{ MEDIA_URL }}{{ fontis_site.logo }}" alt="logo" class="h-8 w-8 rounded object-cover">
+    {% endif %}
+    <span class="font-semibold text-white truncate">{{ fontis_site.short_name }}</span>
+    <button @click="sidebarOpen = false" class="ml-auto lg:hidden text-slate-400 hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+    </button>
+</a>
+
+{% with url_name=request.resolver_match.url_name %}
+<nav class="flex-1 overflow-y-auto py-2 space-y-0.5 text-sm">
+    {# ---- Flat top-level items (single-page sections — no point collapsing these) ---- #}
+    <a href="{% url 'reports:dashboard' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'reports' and url_name == 'dashboard' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "dashboard" %} Dashboard
+    </a>
+    <a href="{% url 'sales:list' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'sales' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "droplet" %} Sales
+    </a>
+    <a href="{% url 'contacts:list' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'contacts' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "contacts" %} Customer Contacts
+    </a>
+    <a href="{% url 'commissions:list' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'commissions' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "star" %} Commissions
+    </a>
+    <a href="{% url 'maintenance:list' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'maintenance' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "tag" %} Pricing
+    </a>
+    <a href="{% url 'reports:sales_report' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'reports' and url_name == 'sales_report' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "chart" %} Sales Reports
+    </a>
+    <a href="{% url 'water_test:list' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'water_test' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "beaker" %} Lab Test
+    </a>
+
+    {# ---- Collapsible groups (multi-link sections) — collapsed by default, auto-open on the active section, instant show/hide (no CSS transition — see mobile sidebar note) ---- #}
+    <div class="pt-2 mt-2 border-t border-slate-800" x-data="{ open: {% if app_name == 'debts' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'debts' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "exclamation" "h-4 w-4" %} Debts Management</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'debts:grouped' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'debts' and url_name == 'grouped' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Grouped Debts
+            </a>
+            <a href="{% url 'debts:individual' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'debts' and url_name == 'individual' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Individual Debts
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'mpesa' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'mpesa' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "phone" "h-4 w-4" %} M-Pesa</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'mpesa:list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'mpesa' and url_name == 'list' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Transactions
+            </a>
+            <a href="{% url 'mpesa:payment_links' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'mpesa' and url_name == 'payment_links' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Payment Links
+            </a>
+            <a href="{% url 'mpesa:reconciliation' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'mpesa' and url_name == 'reconciliation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Reconciliation
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'inventory' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'inventory' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "box" "h-4 w-4" %} Inventory</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'inventory:materials' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'materials' or url_name == 'material_add' or url_name == 'material_edit' or url_name == 'material_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Raw Materials
+            </a>
+            <a href="{% url 'inventory:purchases' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'purchases' or url_name == 'purchase_add' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Purchases
+            </a>
+            <a href="{% url 'inventory:movements' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'movements' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Stock Movement
+            </a>
+            <a href="{% url 'inventory:suppliers' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'suppliers' or url_name == 'supplier_add' or url_name == 'supplier_edit' or url_name == 'supplier_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Suppliers
+            </a>
+            <a href="{% url 'inventory:reorder_levels' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'reorder_levels' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Reorder Levels
+            </a>
+            <a href="{% url 'inventory:expiry_dates' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'inventory' and url_name == 'expiry_dates' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Expiry Dates
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'employees' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'employees' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "id-card" "h-4 w-4" %} Employees</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'employees:list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'list' or url_name == 'add' or url_name == 'detail' or url_name == 'edit' or url_name == 'delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Employees
+            </a>
+            <a href="{% url 'employees:departments' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'departments' or url_name == 'department_add' or url_name == 'department_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Departments
+            </a>
+            <a href="{% url 'employees:roles' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'roles' or url_name == 'role_add' or url_name == 'role_edit' or url_name == 'role_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Roles &amp; Permissions
+            </a>
+            <a href="{% url 'employees:assets' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'assets' or url_name == 'asset_add' or url_name == 'asset_edit' or url_name == 'asset_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Store
+            </a>
+            <a href="{% url 'employees:attendance' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'attendance' or url_name == 'attendance_add' or url_name == 'attendance_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Attendance
+            </a>
+            <a href="{% url 'employees:leave' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'leave' or url_name == 'leave_add' or url_name == 'leave_decision' or url_name == 'leave_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Leave
+            </a>
+            <a href="{% url 'employees:payroll' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'payroll' or url_name == 'payroll_generate' or url_name == 'payroll_status' or url_name == 'payroll_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Payroll
+            </a>
+            <a href="{% url 'employees:performance' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'performance' or url_name == 'performance_add' or url_name == 'performance_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Performance
+            </a>
+            <a href="{% url 'employees:training_records' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'training_programs' or url_name == 'training_program_add' or url_name == 'training_program_delete' or url_name == 'training_records' or url_name == 'training_record_add' or url_name == 'training_record_edit' or url_name == 'training_record_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Training
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'crm' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'crm' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "chat-bubble" "h-4 w-4" %} CRM</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'crm:complaints' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'complaints' or url_name == 'complaint_add' or url_name == 'complaint_edit' or url_name == 'complaint_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Complaints
+            </a>
+            <a href="{% url 'crm:feedback' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'feedback' or url_name == 'feedback_add' or url_name == 'feedback_edit' or url_name == 'feedback_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Feedback
+            </a>
+            <a href="{% url 'crm:followups' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'followups' or url_name == 'followup_add' or url_name == 'followup_edit' or url_name == 'followup_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Follow-ups
+            </a>
+            <a href="{% url 'crm:sms_log' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'sms_log' or url_name == 'sms_send' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                SMS
+            </a>
+            <a href="{% url 'crm:email_log' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'email_log' or url_name == 'email_send' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Email
+            </a>
+            <a href="{% url 'crm:promotions' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'promotions' or url_name == 'promotion_add' or url_name == 'promotion_edit' or url_name == 'promotion_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Promotions
+            </a>
+            <a href="{% url 'crm:loyalty' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'crm' and url_name == 'loyalty' or url_name == 'loyalty_create' or url_name == 'loyalty_adjust' or url_name == 'loyalty_settings' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Loyalty
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'finance' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'finance' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "banknotes" "h-4 w-4" %} Finance</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'finance:journal_entries' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'journal_entries' or url_name == 'journal_entry_add' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                General Ledger
+            </a>
+            <a href="{% url 'finance:accounts' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'accounts' or url_name == 'account_add' or url_name == 'account_edit' or url_name == 'account_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Chart of Accounts
+            </a>
+            <a href="{% url 'finance:trial_balance' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'trial_balance' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Trial Balance
+            </a>
+            <a href="{% url 'finance:income_statement' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'income_statement' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Income Statement
+            </a>
+            <a href="{% url 'finance:balance_sheet' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'balance_sheet' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Balance Sheet
+            </a>
+            <a href="{% url 'finance:cashbook' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'cashbook' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Cashbook
+            </a>
+            <a href="{% url 'finance:bank_accounts' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'bank_accounts' or url_name == 'bank_account_add' or url_name == 'bank_statement_lines' or url_name == 'bank_reconciliation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Bank Reconciliation
+            </a>
+            <a href="{% url 'finance:petty_cash_funds' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'petty_cash_funds' or url_name == 'petty_cash_fund_add' or url_name == 'petty_cash_replenish' or url_name == 'petty_cash_vouchers' or url_name == 'petty_cash_voucher_add' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Petty Cash
+            </a>
+            <a href="{% url 'finance:bills' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'bills' or url_name == 'bill_add' or url_name == 'bill_detail' or url_name == 'bill_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Accounts Payable
+            </a>
+            <a href="{% url 'finance:ar_aging' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'ar_aging' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Accounts Receivable
+            </a>
+            <a href="{% url 'finance:budgets' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'budgets' or url_name == 'budget_add' or url_name == 'budget_vs_actual' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Budgeting
+            </a>
+            <a href="{% url 'finance:fixed_assets' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'fixed_assets' or url_name == 'fixed_asset_add' or url_name == 'run_depreciation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Fixed Assets
+            </a>
+            <a href="{% url 'finance:tax_rates' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'tax_rates' or url_name == 'tax_rate_add' or url_name == 'vat_return' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Tax / VAT
+            </a>
+            <a href="{% url 'finance:mapping' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'finance' and url_name == 'mapping' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Finance Settings
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'expenses' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'expenses' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "receipt" "h-4 w-4" %} Expenses</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'expenses:list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'expenses' and url_name == 'list' or url_name == 'add' or url_name == 'edit' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                All Expenses
+            </a>
+            <a href="{% url 'expenses:categories' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'expenses' and url_name == 'categories' or url_name == 'category_add' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Categories
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'purchasing' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'purchasing' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "truck" "h-4 w-4" %} Purchasing</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'purchasing:requests' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'purchasing' and url_name == 'requests' or url_name == 'request_add' or url_name == 'request_detail' or url_name == 'request_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Purchase Requests
+            </a>
+            <a href="{% url 'purchasing:orders' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'purchasing' and url_name == 'orders' or url_name == 'order_add' or url_name == 'order_detail' or url_name == 'order_edit' or url_name == 'receipt_add' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Purchase Orders
+            </a>
+        </div>
+    </div>
+
+    <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'ml_integration' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'ml_integration' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "cpu" "h-4 w-4" %} Data Analytics</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'ml_integration:predictor_v1' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'ml_integration' and url_name == 'predictor_v1' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                ML Predictor v1
+            </a>
+            <a href="{% url 'ml_integration:predictor_v2' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'ml_integration' and url_name == 'predictor_v2' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                ML Predictor v2
+            </a>
+        </div>
+    </div>
+
+    <a href="{% url 'system_info:edit' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] mt-2 border-t border-slate-800 pt-4 transition-colors {% if app_name == 'system_info' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "cog" %} Settings
+    </a>
+</nav>
+{% endwith %}

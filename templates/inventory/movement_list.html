@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block page_title %}Stock Movement{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Stock Movement" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Material</label>
+            <select name="material" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for m in materials %}
+                    <option value="{{ m.pk }}" {% if selected_material == m.pk|stringformat:"s" %}selected{% endif %}>{{ m.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+        {% if selected_material %}
+            <a href="{% url 'inventory:movements' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Material</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Quantity</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Reference</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">By</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for movement in movements %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ movement.date_created|date:"d M Y H:i" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ movement.material.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ movement.get_movement_type_display }}</td>
+                <td class="px-5 py-2 text-right font-medium {% if movement.quantity >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                    {{ movement.quantity|floatformat:2 }}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ movement.reference|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ movement.created_by.get_full_name|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No stock movements recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

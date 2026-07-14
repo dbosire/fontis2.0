@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block page_title %}Customer Feedback{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Customer Feedback" add_url="crm:feedback_add" add_label="Add Feedback" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Rating</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Comments</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Submitted</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for entry in feedback_entries %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ entry.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ entry.category }}</td>
+                <td class="px-5 py-2 text-amber-500 font-medium">{{ entry.get_rating_display }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 max-w-xs truncate">{{ entry.comments|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ entry.date_submitted|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'crm:feedback_edit' entry.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'crm:feedback_delete' entry.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No feedback recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

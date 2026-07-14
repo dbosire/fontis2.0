@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block page_title %}Generate Payroll{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Generate Payroll</h2>
+    <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+        Expense deductions are computed automatically from any Expense records attributed to this employee within the period — you don't enter that number yourself. Earned commission is also computed automatically from any Commission Accounts this employee manages.
+    </p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.employee %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.period_start %}
+            {% include "core/components/form_field.html" with field=form.period_end %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.basic_salary %}
+        <p class="text-xs text-gray-500 dark:text-slate-400 -mt-2">Pre-fill this from the employee's basic salary, or override for this period.</p>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.allowances %}
+            {% include "core/components/form_field.html" with field=form.other_deductions %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.notes %}
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'employees:payroll' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Generate</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

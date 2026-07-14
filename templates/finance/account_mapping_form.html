@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block page_title %}Finance Settings{% endblock %}
+{% block content %}
+<div class="max-w-2xl space-y-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Default Account Mapping</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">These accounts are used to auto-post Sales, Expenses, and Payroll to the General Ledger. Leave any blank to skip auto-posting for that flow until it's configured.</p>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.cash_account %}
+                {% include "core/components/form_field.html" with field=form.mpesa_account %}
+                {% include "core/components/form_field.html" with field=form.accounts_receivable_account %}
+                {% include "core/components/form_field.html" with field=form.sales_revenue_account %}
+                {% include "core/components/form_field.html" with field=form.accounts_payable_account %}
+                {% include "core/components/form_field.html" with field=form.default_expense_account %}
+                {% include "core/components/form_field.html" with field=form.salaries_expense_account %}
+                {% include "core/components/form_field.html" with field=form.employee_advances_account %}
+                {% include "core/components/form_field.html" with field=form.payroll_deductions_payable_account %}
+                {% include "core/components/form_field.html" with field=form.vat_payable_account %}
+                {% include "core/components/form_field.html" with field=form.vat_receivable_account %}
+            </div>
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Expense Category Accounts</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Route specific expense categories to specific GL accounts. Any category without a mapping falls back to the default expense account above.</p>
+        <form method="post" action="{% url 'finance:category_mapping_add' %}" class="flex items-end gap-3 mb-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ category_form.category.label }}</label>
+                {{ category_form.category }}
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ category_form.account.label }}</label>
+                {{ category_form.account }}
+            </div>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Add</button>
+        </form>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for mapping in category_mappings %}
+                <tr>
+                    <td class="py-2 text-gray-900 dark:text-white">{{ mapping.category }}</td>
+                    <td class="py-2 text-gray-500 dark:text-slate-400">{{ mapping.account.code }} — {{ mapping.account.name }}</td>
+                    <td class="py-2 text-right">
+                        <form method="post" action="{% url 'finance:category_mapping_delete' mapping.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-600 hover:underline">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td class="py-4 text-gray-400 dark:text-slate-500" colspan="3">No category mappings — everything falls back to the default expense account.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

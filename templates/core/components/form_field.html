@@ -1,0 +1,7 @@
+{% comment %}Usage: {% include "core/components/form_field.html" with field=form.name %}{% endcomment %}
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<p class="text-xs text-gray-400 dark:text-slate-500 mt-1">{{ field.help_text }}</p>{% endif %}
+    {% if field.errors %}<p class="text-sm text-red-600 dark:text-red-400 mt-1">{{ field.errors.0 }}</p>{% endif %}
+</div>

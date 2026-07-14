@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block page_title %}System Info{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">System Info</h2>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.name %}
+        {% include "core/components/form_field.html" with field=form.short_name %}
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Logo</label>
+            {% if current_logo %}<img src="{{ MEDIA_URL }}{{ current_logo }}" class="h-12 w-12 rounded object-cover mb-2">{% endif %}
+            {{ form.logo }}
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Cover Image</label>
+            {% if current_cover %}<img src="{{ MEDIA_URL }}{{ current_cover }}" class="h-16 w-full rounded object-cover mb-2">{% endif %}
+            {{ form.cover }}
+        </div>
+
+        <div class="flex justify-end pt-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

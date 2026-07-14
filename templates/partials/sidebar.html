@@ -1,0 +1,17 @@
+{% with app_name=request.resolver_match.app_name %}
+<!-- Desktop: always visible, no JS involved -->
+<aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-slate-900/85 backdrop-blur-xl text-slate-200 border-r border-white/10">
+    {% include "partials/sidebar_content.html" %}
+</aside>
+
+<!-- Mobile: off-canvas panel toggled via sidebarOpen (declared on <body> in base.html).
+     Plain show/hide (no CSS transition) — kept deliberately simple after Tailwind v4's
+     transition-duration utilities were found to be unreliable in some environments. -->
+<div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+     class="fixed inset-0 z-40 bg-black/50 lg:hidden"></div>
+
+<aside x-show="sidebarOpen" x-cloak
+       class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-slate-900/95 backdrop-blur-xl text-slate-200 border-r border-white/10 lg:hidden">
+    {% include "partials/sidebar_content.html" %}
+</aside>
+{% endwith %}

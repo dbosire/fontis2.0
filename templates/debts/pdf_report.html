@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1f2937; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; }
+    th { background: #f3f4f6; }
+    td.amount, th.amount { text-align: right; }
+    tfoot td { font-weight: bold; background: #f9fafb; }
+</style>
+</head>
+<body>
+    <h1>Fontis Springs — Outstanding Debts Report</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th class="amount">Total Orders</th>
+                <th class="amount">Total Owed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in grouped_debts %}
+            <tr>
+                <td>{{ row.customer_name }}</td>
+                <td class="amount">{{ row.total_orders }}</td>
+                <td class="amount">{{ row.total_amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>Total</td>
+                <td></td>
+                <td class="amount">{{ grand_total|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>

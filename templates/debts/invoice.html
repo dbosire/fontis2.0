@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1f2937; }
+    .header-table, .header-table td { border: none; padding: 0; }
+    .header-table { width: 100%; margin-bottom: 6px; }
+    .brand { font-size: 20px; font-weight: bold; color: #1e3a8a; }
+    .invoice-title { font-size: 22px; font-weight: bold; color: #1e3a8a; text-align: right; }
+    .meta { color: #6b7280; text-align: right; }
+    .divider { border: none; border-top: 2px solid #1e3a8a; margin: 10px 0 18px 0; }
+    .bill-to-label { color: #6b7280; font-size: 10px; text-transform: uppercase; margin: 0 0 2px 0; }
+    .bill-to-name { font-size: 15px; font-weight: bold; margin: 0 0 20px 0; }
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table th, .items-table td { border: 1px solid #d1d5db; padding: 7px 9px; text-align: left; }
+    .items-table th { background: #1e3a8a; color: #ffffff; font-size: 10px; text-transform: uppercase; }
+    .items-table td.amount, .items-table th.amount { text-align: right; }
+    .items-table tfoot td { font-weight: bold; background: #eff6ff; font-size: 13px; color: #1e3a8a; }
+    .payment-table { width: 100%; margin-top: 22px; border-collapse: collapse; }
+    .payment-table th { background: #eff6ff; color: #1e3a8a; text-align: left; padding: 7px 9px; border: 1px solid #bfdbfe; font-size: 11px; }
+    .payment-table td { border: 1px solid #bfdbfe; padding: 9px; line-height: 1.7; }
+    .footer-note { margin-top: 26px; text-align: center; color: #9ca3af; font-size: 10px; }
+</style>
+</head>
+<body>
+    <table class="header-table">
+        <tr>
+            <td style="width: 320px;">
+                {% if logo_data_uri %}<img src="{{ logo_data_uri }}" style="height: 40px; margin-bottom: 6px;" /><br>{% endif %}
+                <span class="brand">{{ fontis_site_name }}</span>
+            </td>
+            <td>
+                <div class="invoice-title">INVOICE</div>
+                <div class="meta">{{ invoice_number }}</div>
+                <div class="meta">Issued {{ issue_date|date:"d M Y" }}</div>
+            </td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <p class="bill-to-label">Bill To</p>
+    <p class="bill-to-name">{{ customer }}</p>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th class="amount">Qty</th>
+                <th class="amount">Price</th>
+                <th class="amount">Line Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+                {% for item in sale.items.all %}
+                <tr>
+                    <td>{{ sale.date_created|date:"d M Y" }}</td>
+                    <td>{{ item.jar_type.name }}</td>
+                    <td class="amount">{{ item.quantity }}</td>
+                    <td class="amount">{{ item.price|floatformat:2 }}</td>
+                    <td class="amount">{{ item.total_amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4">Total Due</td>
+                <td class="amount">KES {{ total|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    {% if mpesa_till_number or pay_url %}
+    <table class="payment-table">
+        <thead>
+            <tr><th colspan="2">How to Pay</th></tr>
+        </thead>
+        <tbody>
+            {% if mpesa_till_number %}
+            <tr>
+                <td colspan="2">
+                    1. Go to <strong>Lipa na M-Pesa</strong> &rarr; <strong>Buy Goods and Services</strong><br>
+                    2. Enter Till Number: <strong>{{ mpesa_till_number }}</strong><br>
+                    3. Enter Amount: <strong>KES {{ total|floatformat:0 }}</strong><br>
+                    4. Enter your M-Pesa PIN and confirm
+                </td>
+            </tr>
+            {% endif %}
+            {% if pay_url %}
+            <tr>
+                <td colspan="2">
+                    Or pay online (M-Pesa STK push or Till) at:<br>
+                    <strong>{{ pay_url }}</strong><br>
+                    Link expires {{ payment_link.expires_at|date:"d M Y, H:i" }}.
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <p class="footer-note">Thank you for choosing {{ fontis_site_name }}.</p>
+</body>
+</html>

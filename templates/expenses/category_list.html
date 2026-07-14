@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block page_title %}Expense Categories{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Expense Categories" add_url="expenses:category_add" add_label="Add Category" %}
+<a href="{% url 'expenses:list' %}" class="text-sm text-blue-600 hover:underline">&larr; Back to Expenses</a>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden mt-4">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Added</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for category in categories %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ category.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ category.date_created|date:"d M Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No categories yet — add your first one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

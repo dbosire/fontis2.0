@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block page_title %}Roles{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Roles" add_url="employees:role_add" add_label="Add Role" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Department</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Module Access</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for role in roles %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ role.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ role.department.name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">
+                    {% for perm in role.permissions.all %}
+                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-slate-300 text-xs px-2 py-0.5 mr-1 mb-1">
+                            {{ perm.get_module_display }}{% if perm.can_edit %} (edit){% endif %}
+                        </span>
+                    {% empty %}
+                        <span class="text-gray-300 dark:text-slate-600">No module access set</span>
+                    {% endfor %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'employees:role_edit' role.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'employees:role_delete' role.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No roles yet — add your first one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

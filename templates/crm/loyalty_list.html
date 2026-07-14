@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block page_title %}Customer Loyalty{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Customer Loyalty</h2>
+    <a href="{% url 'crm:loyalty_settings' %}" class="text-sm text-blue-600 hover:underline">Program settings</a>
+</div>
+
+<p class="text-sm text-gray-500 dark:text-slate-400 mb-4">
+    Customers earn 1 point for every KES {{ program.points_per_amount|floatformat:0 }} spent on a paid sale
+    (redemption value: KES {{ program.redemption_value|floatformat:2 }} per point).
+</p>
+
+<form method="post" action="{% url 'crm:loyalty_create' %}" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4 flex items-end gap-3">
+    {% csrf_token %}
+    <div class="flex-1 max-w-xs">
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">{{ create_form.contact.label }}</label>
+        {{ create_form.contact }}
+    </div>
+    <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Create Account</button>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Phone</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Points Balance</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Updated</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for loyalty in loyalty_accounts %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ loyalty.contact.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ loyalty.contact.phone|default:"—" }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white font-semibold">{{ loyalty.points_balance|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ loyalty.date_updated|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'crm:loyalty_adjust' loyalty.pk %}" class="text-blue-600 hover:underline">Adjust</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No customer loyalty accounts yet — accounts are created automatically the first time a matching contact earns points, or manually from a customer's contact record.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

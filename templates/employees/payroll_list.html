@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Payroll{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Payroll" add_url="employees:payroll_generate" add_label="Generate Payroll" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Period</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Basic</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Commission</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Expense Deductions</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Other Adjustments</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Net Pay</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for payroll in payrolls %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ payroll.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ payroll.period_start|date:"d M" }} - {{ payroll.period_end|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ payroll.basic_salary|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right text-green-600">{% if payroll.commission_earned %}+{{ payroll.commission_earned|floatformat:2 }}{% else %}—{% endif %}</td>
+                <td class="px-5 py-2 text-right text-red-600">-{{ payroll.expense_deductions|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ payroll.allowances|floatformat:2 }} / -{{ payroll.other_deductions|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white font-semibold">{{ payroll.net_pay|floatformat:2 }}</td>
+                <td class="px-5 py-2">
+                    {% if payroll.status == "paid" %}{% status_badge "Paid" "success" %}
+                    {% elif payroll.status == "finalized" %}{% status_badge "Finalized" "info" %}
+                    {% else %}{% status_badge "Draft" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-2">
+                    {% if payroll.status == "draft" %}
+                        <form method="post" action="{% url 'employees:payroll_status' payroll.pk 'finalized' %}" class="inline">
+                            {% csrf_token %}<button type="submit" class="text-blue-600 hover:underline">Finalize</button>
+                        </form>
+                    {% elif payroll.status == "finalized" %}
+                        <form method="post" action="{% url 'employees:payroll_status' payroll.pk 'paid' %}" class="inline">
+                            {% csrf_token %}<button type="submit" class="text-green-600 hover:underline">Mark Paid</button>
+                        </form>
+                    {% endif %}
+                    <a href="{% url 'employees:payroll_delete' payroll.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No payroll records yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

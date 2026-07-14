@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Follow-ups{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Follow-ups" add_url="crm:followup_add" add_label="Schedule Follow-up" %}
+
+<div class="flex gap-2 mb-4 text-sm">
+    <a href="?show=pending" class="px-3 py-1.5 rounded-md {% if selected_show == 'pending' %}bg-blue-600 text-white{% else %}bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/40{% endif %}">Pending</a>
+    <a href="?show=completed" class="px-3 py-1.5 rounded-md {% if selected_show == 'completed' %}bg-blue-600 text-white{% else %}bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/40{% endif %}">Completed</a>
+    <a href="?show=all" class="px-3 py-1.5 rounded-md {% if selected_show == 'all' %}bg-blue-600 text-white{% else %}bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800/40{% endif %}">All</a>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Scheduled</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Assigned</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Related Complaint</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for follow_up in follow_ups %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ follow_up.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ follow_up.get_follow_up_type_display }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ follow_up.scheduled_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ follow_up.assigned_to.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ follow_up.related_complaint.subject|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if follow_up.completed %}{% status_badge "Completed" "success" %}{% else %}{% status_badge "Pending" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    {% if not follow_up.completed %}
+                        <form method="post" action="{% url 'crm:followup_complete' follow_up.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-green-600 hover:underline">Mark Done</button>
+                        </form>
+                    {% endif %}
+                    <a href="{% url 'crm:followup_edit' follow_up.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'crm:followup_delete' follow_up.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No follow-ups here.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&show={{ selected_show }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&show={{ selected_show }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block page_title %}ML Predictor {{ version_label }}{% endblock %}
+{% block content %}
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Refill Predictions ({{ version_label }})</h2>
+
+{% if error %}
+<div class="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-sm px-4 py-3">
+    Could not reach the ML service: {{ error }}
+</div>
+{% else %}
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Last Refill</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Predicted Interval (days)</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Next Refill</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for p in predictions %}
+            <tr>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ p.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.last_refill_date }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ p.predicted_days_interval }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.next_refill_date }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No predictions available.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

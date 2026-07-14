@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block page_title %}Cashbook{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Cashbook</h2>
+    <form method="get" class="flex items-center gap-2">
+        <select name="account" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm">
+            <option value="">All cash accounts</option>
+            {% for acc in cash_accounts %}
+                <option value="{{ acc.pk }}" {% if selected_account == acc.pk|stringformat:"s" %}selected{% endif %}>{{ acc.code }} — {{ acc.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5">Filter</button>
+    </form>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Account</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Description</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">In</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Out</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Balance</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for row in rows %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ row.line.entry.date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ row.line.account.code }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ row.line.entry.description }}</td>
+                <td class="px-5 py-2 text-right text-green-600">{% if row.net > 0 %}{{ row.net|floatformat:2 }}{% endif %}</td>
+                <td class="px-5 py-2 text-right text-red-600">{% if row.net < 0 %}{{ row.net|floatformat:2 }}{% endif %}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white font-medium">{{ row.balance|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No cash movements yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block page_title %}New Bill{% endblock %}
+{% block content %}
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">New Bill</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.supplier %}
+            {% include "core/components/form_field.html" with field=form.related_purchase %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.expense_account %}
+            {% include "core/components/form_field.html" with field=form.tax_rate %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.bill_number %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.bill_date %}
+            {% include "core/components/form_field.html" with field=form.due_date %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.amount %}
+        {% include "core/components/form_field.html" with field=form.notes %}
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'finance:bills' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

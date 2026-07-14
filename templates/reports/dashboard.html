@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">This month's sales</p>
+        <p class="text-2xl font-semibold text-gray-900 dark:text-white mt-1">KES {{ month_sales_total|floatformat:2 }}</p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ month_sales_count }} transaction{{ month_sales_count|pluralize }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Water sold this month</p>
+        <p class="text-2xl font-semibold text-cyan-600 mt-1">{{ month_water_liters|floatformat:1 }} L</p>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">This month's expenses</p>
+        <p class="text-2xl font-semibold text-gray-900 dark:text-white mt-1">KES {{ month_expenses_total|floatformat:2 }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">This month's debts</p>
+        <p class="text-2xl font-semibold text-amber-600 mt-1">KES {{ month_debts_total|floatformat:2 }}</p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ month_debts_count }} unpaid sale{{ month_debts_count|pluralize }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Total debts (all-time)</p>
+        <p class="text-2xl font-semibold text-red-600 mt-1">KES {{ unpaid_total|floatformat:2 }}</p>
+        <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ unpaid_count }} unpaid sale{{ unpaid_count|pluralize }}</p>
+    </div>
+</div>
+
+<div class="mb-6">
+    <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Today's Sales</h2>
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Total</p>
+            <p class="text-xl font-semibold text-gray-900 dark:text-white mt-1">{{ today_total.total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ today_total.count }} sale{{ today_total.count|pluralize }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">M-Pesa</p>
+            <p class="text-xl font-semibold text-blue-600 mt-1">{{ today_mpesa.total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ today_mpesa.count }} sale{{ today_mpesa.count|pluralize }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Cash</p>
+            <p class="text-xl font-semibold text-green-600 mt-1">{{ today_cash.total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ today_cash.count }} sale{{ today_cash.count|pluralize }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Unresolved</p>
+            <p class="text-xl font-semibold text-red-600 mt-1">{{ today_unresolved.total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ today_unresolved.count }} sale{{ today_unresolved.count|pluralize }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Debts</p>
+            <p class="text-xl font-semibold text-amber-600 mt-1">{{ today_unpaid.total|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ today_unpaid.count }} sale{{ today_unpaid.count|pluralize }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="mb-6">
+    <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Today at a Glance</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Water sold today</p>
+            <p class="text-xl font-semibold text-cyan-600 mt-1">{{ today_water_liters|floatformat:1 }} L</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Daily profit estimate</p>
+            <p class="text-xl font-semibold {% if today_profit_estimate < 0 %}text-red-600{% else %}text-green-600{% endif %} mt-1">KES {{ today_profit_estimate|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Revenue {{ today_total.total|floatformat:0 }} − expenses {{ today_expenses_total|floatformat:0 }} − est. COGS {{ today_cogs_estimate|floatformat:0 }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Cash flow today</p>
+            <p class="text-xl font-semibold {% if cash_flow_net < 0 %}text-red-600{% else %}text-green-600{% endif %} mt-1">KES {{ cash_flow_net|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">In {{ cash_flow_in|floatformat:2 }} · Out {{ cash_flow_out|floatformat:2 }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 mb-6">
+    <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Stock Alerts</h2>
+        {% if low_stock_count %}
+            <a href="{% url 'inventory:reorder_levels' %}" class="text-xs text-blue-600 hover:underline">View all {{ low_stock_count }} →</a>
+        {% endif %}
+    </div>
+    {% if low_stock_materials %}
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for material in low_stock_materials %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ material.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ material.category }}</td>
+                <td class="px-5 py-2 text-right text-red-600 font-medium">{{ material.current_stock|floatformat:2 }} {{ material.unit }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">reorder at {{ material.reorder_level|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="px-5 py-6 text-center text-gray-400 dark:text-slate-500 text-sm">All raw materials are above their reorder level.</p>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+    <div class="lg:col-span-2 bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Weekly Sales</h2>
+        <canvas id="weekly-sales-chart" height="110"></canvas>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Monthly Payment Distribution</h2>
+        <canvas id="payment-distribution-chart" height="110"></canvas>
+    </div>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5 mb-6">
+    <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Monthly Summary</h2>
+    <canvas id="monthly-summary-chart" height="80"></canvas>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+    <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Sales</h2>
+    </div>
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Items</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for sale in recent_sales %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ sale.date_created|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ sale.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ sale.amount|floatformat:2 }}</td>
+                <td class="px-5 py-2">
+                    {% if sale.status == 0 %}
+                        {% status_badge "Unpaid" "warning" %}
+                    {% elif sale.status == 1 %}
+                        {% status_badge "Cash" "success" %}
+                    {% elif sale.status == 2 %}
+                        {% status_badge "M-Pesa" "info" %}
+                    {% else %}
+                        {% status_badge "Unresolved" "danger" %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No sales yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{{ weekly_sales|json_script:"weekly-sales-data" }}
+{{ monthly_summary|json_script:"monthly-summary-data" }}
+{{ monthly_distribution|json_script:"monthly-distribution-data" }}
+<script>
+(function () {
+    const weeklySales = JSON.parse(document.getElementById('weekly-sales-data').textContent);
+    const monthlySummary = JSON.parse(document.getElementById('monthly-summary-data').textContent);
+    const distribution = JSON.parse(document.getElementById('monthly-distribution-data').textContent);
+
+    new Chart(document.getElementById('weekly-sales-chart'), {
+        type: 'bar',
+        data: {
+            labels: weeklySales.map(function (r) { return r.label; }),
+            datasets: [{
+                label: 'Sales (KES)',
+                data: weeklySales.map(function (r) { return r.total; }),
+                backgroundColor: '#2563eb',
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
+        },
+    });
+
+    new Chart(document.getElementById('payment-distribution-chart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Cash', 'M-Pesa', 'Unpaid', 'Unresolved'],
+            datasets: [{
+                data: [distribution.cash, distribution.mpesa, distribution.unpaid, distribution.unresolved],
+                backgroundColor: ['#16a34a', '#2563eb', '#d97706', '#dc2626'],
+            }],
+        },
+        options: {
+            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        },
+    });
+
+    new Chart(document.getElementById('monthly-summary-chart'), {
+        type: 'bar',
+        data: {
+            labels: monthlySummary.map(function (r) { return r.label; }),
+            datasets: [{
+                label: 'Sales (KES)',
+                data: monthlySummary.map(function (r) { return r.total; }),
+                backgroundColor: '#0ea5e9',
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } },
+        },
+    });
+})();
+</script>
+{% endblock %}

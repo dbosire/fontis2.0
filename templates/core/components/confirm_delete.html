@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block page_title %}Delete{% endblock %}
+{% block content %}
+<div class="max-w-md bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Delete {{ object }}?</h2>
+    <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">This action cannot be undone.</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-end gap-3">
+            <a href="{{ cancel_url }}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2">Delete</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

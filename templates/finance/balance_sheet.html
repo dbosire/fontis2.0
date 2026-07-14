@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block page_title %}Balance Sheet{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Balance Sheet</h2>
+        <form method="get" class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 dark:text-slate-400">As of</label>
+            <input type="date" name="as_of" value="{{ as_of }}" class="rounded-md border border-gray-300 dark:border-slate-600 px-3 py-1.5 text-sm">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5">Go</button>
+        </form>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6 space-y-6 text-sm">
+        <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Assets</h3>
+            {% for row in asset_rows %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">{{ row.account.name }}</span><span class="text-gray-900 dark:text-white">{{ row.amount|floatformat:2 }}</span></div>
+            {% empty %}
+            <p class="text-gray-400 dark:text-slate-500">No assets posted yet.</p>
+            {% endfor %}
+            <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-medium"><span>Total Assets</span><span>{{ total_assets|floatformat:2 }}</span></div>
+        </div>
+
+        <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Liabilities</h3>
+            {% for row in liability_rows %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">{{ row.account.name }}</span><span class="text-gray-900 dark:text-white">{{ row.amount|floatformat:2 }}</span></div>
+            {% empty %}
+            <p class="text-gray-400 dark:text-slate-500">No liabilities posted yet.</p>
+            {% endfor %}
+            <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-medium"><span>Total Liabilities</span><span>{{ total_liabilities|floatformat:2 }}</span></div>
+        </div>
+
+        <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Equity</h3>
+            {% for row in equity_rows %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">{{ row.account.name }}</span><span class="text-gray-900 dark:text-white">{{ row.amount|floatformat:2 }}</span></div>
+            {% endfor %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">Retained Earnings (cumulative, live)</span><span class="text-gray-900 dark:text-white">{{ retained_earnings|floatformat:2 }}</span></div>
+            <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-medium"><span>Total Equity</span><span>{{ total_equity|floatformat:2 }}</span></div>
+        </div>
+
+        <div class="flex justify-between pt-4 border-t-2 border-gray-300 dark:border-slate-600 text-base font-semibold">
+            <span>Total Liabilities + Equity</span>
+            <span>{{ total_liabilities_and_equity|floatformat:2 }}</span>
+        </div>
+        {% if total_assets == total_liabilities_and_equity %}
+        <p class="text-sm text-green-600">Balanced — Assets = Liabilities + Equity.</p>
+        {% else %}
+        <p class="text-sm text-red-600">Out of balance — this should never happen; check for data entry outside the normal Finance flows.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

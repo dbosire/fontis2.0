@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block page_title %}Edit Contact{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Edit Contact</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.name %}
+        {% include "core/components/form_field.html" with field=form.phone %}
+        {% include "core/components/form_field.html" with field=form.email %}
+        {% include "core/components/form_field.html" with field=form.address %}
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'contacts:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

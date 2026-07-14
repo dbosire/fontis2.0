@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Budgets{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Budgets" add_url="finance:budget_add" add_label="New Budget" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Period</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for budget in budgets %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ budget.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ budget.period_start|date:"d M Y" }} – {{ budget.period_end|date:"d M Y" }}</td>
+                <td class="px-5 py-2">{% if budget.is_active %}{% status_badge "Active" "success" %}{% else %}{% status_badge "Inactive" "neutral" %}{% endif %}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'finance:budget_vs_actual' budget.pk %}" class="text-blue-600 hover:underline">View vs Actual</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No budgets yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

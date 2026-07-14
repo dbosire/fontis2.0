@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_title %}Bank Accounts{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Bank Accounts" add_url="finance:bank_account_add" add_label="Add Bank Account" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Account No.</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">GL Account</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for account in bank_accounts %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ account.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ account.account_number|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ account.gl_account.code }} — {{ account.gl_account.name }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'finance:bank_statement_lines' account.pk %}" class="text-blue-600 hover:underline">Statement</a>
+                    <a href="{% url 'finance:bank_reconciliation' account.pk %}" class="text-blue-600 hover:underline">Reconcile</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No bank accounts yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

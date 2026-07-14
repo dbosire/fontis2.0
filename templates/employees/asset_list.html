@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Store{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Employee Store" add_url="employees:asset_add" add_label="Issue Item" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Item</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Issued</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for asset in assets %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ asset.item_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ asset.category|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ asset.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ asset.issued_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2">
+                    {% if asset.status == "issued" %}{% status_badge "Issued" "info" %}
+                    {% elif asset.status == "returned" %}{% status_badge "Returned" "success" %}
+                    {% else %}{% status_badge "Lost/Damaged" "danger" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'employees:asset_edit' asset.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'employees:asset_delete' asset.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">Nothing issued yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

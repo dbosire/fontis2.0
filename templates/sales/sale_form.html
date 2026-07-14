@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}New{% endif %} Sale{% endblock %}
+{% block content %}
+{{ jar_type_prices|json_script:"jar-type-prices" }}
+<style>.formset-row input[name$="-DELETE"] { display: none; }</style>
+<div class="max-w-3xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}New{% endif %} Sale</h2>
+
+    <datalist id="customer-options">
+        {% for name in customer_names %}
+            <option value="{{ name }}">
+        {% endfor %}
+    </datalist>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {% include "core/components/form_field.html" with field=form.customer_name %}
+            {% include "core/components/form_field.html" with field=form.type %}
+            {% include "core/components/form_field.html" with field=form.delivery_address %}
+            {% include "core/components/form_field.html" with field=form.status %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.comments %}
+
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mt-6 mb-2">Items</h3>
+        {{ formset.management_form }}
+        {% if formset.non_form_errors %}
+            <p class="text-sm text-red-600 mb-2">{{ formset.non_form_errors.0 }}</p>
+        {% endif %}
+
+        <div class="grid grid-cols-12 gap-2 px-2 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+            <div class="col-span-5">Item</div>
+            <div class="col-span-2">Qty</div>
+            <div class="col-span-2">Price</div>
+            <div class="col-span-2 text-right">Line total</div>
+            <div class="col-span-1"></div>
+        </div>
+
+        <div class="space-y-2" id="formset-rows">
+            {% for item_form in formset %}
+                <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2" {% if item_form.instance.pk %}data-existing="1"{% endif %}>
+                    <div class="col-span-5">{{ item_form.jar_type }}</div>
+                    <div class="col-span-2">{{ item_form.quantity }}</div>
+                    <div class="col-span-2">{{ item_form.price }}</div>
+                    <div class="col-span-2 flex items-center justify-end text-sm text-gray-700 dark:text-slate-300 line-total">
+                        {{ item_form.instance.total_amount|default:"0.00"|floatformat:2 }}
+                    </div>
+                    <div class="col-span-1 text-right">
+                        {{ item_form.id }}
+                        {{ item_form.DELETE }}
+                        <button type="button" class="remove-row-btn text-red-600 hover:text-red-800" title="Remove item">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    {% for error in item_form.non_field_errors %}
+                        <p class="col-span-12 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <template id="empty-form-template">
+            <div class="formset-row grid grid-cols-12 gap-2 items-start border border-gray-100 dark:border-slate-800 rounded-md p-2">
+                <div class="col-span-5">{{ formset.empty_form.jar_type }}</div>
+                <div class="col-span-2">{{ formset.empty_form.quantity }}</div>
+                <div class="col-span-2">{{ formset.empty_form.price }}</div>
+                <div class="col-span-2 flex items-center justify-end text-sm text-gray-700 dark:text-slate-300 line-total">0.00</div>
+                <div class="col-span-1 text-right">
+                    {{ formset.empty_form.id }}
+                    {{ formset.empty_form.DELETE }}
+                    <button type="button" class="remove-row-btn text-red-600 hover:text-red-800" title="Remove item">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        <button type="button" id="add-row-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add line item</button>
+
+        <div class="flex justify-end items-center gap-3 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">
+            <span class="text-sm text-gray-500 dark:text-slate-400">Total</span>
+            <span id="grand-total" class="text-lg font-semibold text-gray-900 dark:text-white">0.00</span>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-6">
+            <a href="{% url 'sales:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save Sale</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    const jarTypePrices = JSON.parse(document.getElementById('jar-type-prices').textContent);
+    const rowsContainer = document.getElementById('formset-rows');
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+    const grandTotalEl = document.getElementById('grand-total');
+
+    function fieldIn(row, suffix) {
+        return row.querySelector('[name$="' + suffix + '"]');
+    }
+
+    function isRowActive(row) {
+        const deleteInput = fieldIn(row, '-DELETE');
+        return !(deleteInput && deleteInput.checked);
+    }
+
+    function recalcRow(row) {
+        const qty = parseFloat(fieldIn(row, '-quantity')?.value) || 0;
+        const price = parseFloat(fieldIn(row, '-price')?.value) || 0;
+        const total = qty * price;
+        const lineTotalEl = row.querySelector('.line-total');
+        if (lineTotalEl) lineTotalEl.textContent = total.toFixed(2);
+        return total;
+    }
+
+    function recalcGrandTotal() {
+        let grand = 0;
+        rowsContainer.querySelectorAll('.formset-row').forEach(function (row) {
+            if (!isRowActive(row)) {
+                const lineTotalEl = row.querySelector('.line-total');
+                if (lineTotalEl) lineTotalEl.textContent = '0.00';
+                return;
+            }
+            grand += recalcRow(row);
+        });
+        grandTotalEl.textContent = grand.toFixed(2);
+    }
+
+    rowsContainer.addEventListener('change', function (e) {
+        if (e.target.matches('[name$="-jar_type"]')) {
+            const row = e.target.closest('.formset-row');
+            const price = jarTypePrices[e.target.value];
+            const priceInput = fieldIn(row, '-price');
+            if (price !== undefined && priceInput) {
+                priceInput.value = price;
+            }
+            recalcGrandTotal();
+        }
+    });
+
+    rowsContainer.addEventListener('input', function (e) {
+        if (e.target.matches('[name$="-quantity"], [name$="-price"]')) {
+            recalcGrandTotal();
+        }
+    });
+
+    rowsContainer.addEventListener('click', function (e) {
+        const removeBtn = e.target.closest('.remove-row-btn');
+        if (!removeBtn) return;
+        const row = removeBtn.closest('.formset-row');
+        const deleteInput = fieldIn(row, '-DELETE');
+        if (deleteInput) {
+            deleteInput.checked = true;
+        }
+        row.style.display = 'none';
+        recalcGrandTotal();
+    });
+
+    document.getElementById('add-row-btn').addEventListener('click', function () {
+        const formIndex = parseInt(totalFormsInput.value, 10);
+        const templateHtml = document.getElementById('empty-form-template').innerHTML.replaceAll('__prefix__', formIndex);
+        rowsContainer.insertAdjacentHTML('beforeend', templateHtml);
+        totalFormsInput.value = formIndex + 1;
+        recalcGrandTotal();
+    });
+
+    recalcGrandTotal();
+})();
+</script>
+{% endblock %}

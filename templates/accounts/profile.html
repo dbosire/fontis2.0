@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block page_title %}My Account{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">My Account</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<p class="text-sm text-red-600 mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex items-center justify-between pt-2">
+            <a href="{% url 'accounts:change_password' %}" class="text-sm text-blue-600 hover:underline">Change password</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">
+                Save changes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

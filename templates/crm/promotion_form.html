@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}New{% endif %} Promotion{% endblock %}
+{% block content %}
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}New{% endif %} Promotion</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.title %}
+        {% include "core/components/form_field.html" with field=form.description %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.discount_type %}
+            {% include "core/components/form_field.html" with field=form.discount_value %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.start_date %}
+            {% include "core/components/form_field.html" with field=form.end_date %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.channel %}
+        {% include "core/components/form_field.html" with field=form.message %}
+        <div class="flex items-center gap-2">
+            {{ form.active }}
+            <label for="{{ form.active.id_for_label }}" class="text-sm text-gray-700 dark:text-slate-300">Active</label>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'crm:promotions' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

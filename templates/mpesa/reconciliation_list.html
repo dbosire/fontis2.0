@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}M-Pesa Reconciliation{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="M-Pesa Reconciliation" %}
+<p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4">Direct Till payments that couldn't be automatically matched to a payment link (no matching phone number, or more than one candidate). Match them manually below.</p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Trans ID</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Payer</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for txn in transactions %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-mono">{{ txn.trans_id }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.trans_time }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ txn.msisdn }} {{ txn.first_name }} {{ txn.last_name }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ txn.trans_amount|floatformat:2 }}</td>
+                <td class="px-5 py-2">
+                    {% if txn.status == "duplicate" %}{% status_badge "Duplicate — see link" "info" %}
+                    {% else %}{% status_badge "Unmatched" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right">
+                    {% if txn.status == "unmatched" %}
+                    <form method="post" action="{% url 'mpesa:reconciliation_match' txn.pk %}" class="inline-flex items-center gap-2">
+                        {% csrf_token %}
+                        <select name="payment_link_id" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-2 py-1 text-xs" required>
+                            <option value="">Match to…</option>
+                            {% for link in pending_links %}
+                                <option value="{{ link.pk }}">{{ link.customer_name }} — KES {{ link.amount|floatformat:0 }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="text-blue-600 hover:underline text-xs">Match</button>
+                    </form>
+                    {% elif txn.matched_payment_link %}
+                        <span class="text-gray-500 dark:text-slate-400 text-xs">{{ txn.matched_payment_link.customer_name }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">Nothing to reconcile.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

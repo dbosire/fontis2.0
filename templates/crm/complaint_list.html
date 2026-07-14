@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Customer Complaints{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Customer Complaints" add_url="crm:complaint_add" add_label="Log Complaint" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+            <select name="status" class="rounded-md border border-gray-300 dark:border-slate-600 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+        {% if selected_status %}
+            <a href="{% url 'crm:complaints' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Subject</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Priority</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Assigned</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Raised</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for complaint in complaints %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ complaint.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ complaint.subject }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ complaint.category }}</td>
+                <td class="px-5 py-2">
+                    {% if complaint.priority == "urgent" %}{% status_badge "Urgent" "danger" %}
+                    {% elif complaint.priority == "high" %}{% status_badge "High" "warning" %}
+                    {% elif complaint.priority == "medium" %}{% status_badge "Medium" "info" %}
+                    {% else %}{% status_badge "Low" "neutral" %}{% endif %}
+                </td>
+                <td class="px-5 py-2">
+                    {% if complaint.status == "resolved" or complaint.status == "closed" %}{% status_badge complaint.get_status_display "success" %}
+                    {% elif complaint.status == "in_progress" %}{% status_badge complaint.get_status_display "info" %}
+                    {% else %}{% status_badge complaint.get_status_display "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ complaint.assigned_to.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ complaint.date_raised|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'crm:complaint_edit' complaint.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'crm:complaint_delete' complaint.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No complaints logged yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

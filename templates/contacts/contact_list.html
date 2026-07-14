@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block page_title %}Customer Contacts{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Contact</h2>
+            <form method="post" action="{% url 'contacts:add' %}" class="space-y-4">
+                {% csrf_token %}
+                {% if known_customers %}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Quick-fill from a sale</label>
+                    <select class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            onchange="document.getElementById('id_name').value = this.value">
+                        <option value="">-- choose an existing customer name --</option>
+                        {% for name in known_customers %}
+                            <option value="{{ name }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                {% include "core/components/form_field.html" with field=form.name %}
+                {% include "core/components/form_field.html" with field=form.phone %}
+                {% include "core/components/form_field.html" with field=form.email %}
+                {% include "core/components/form_field.html" with field=form.address %}
+                <button type="submit" class="w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2">
+                    Save Contact
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+                <thead class="bg-gray-50 dark:bg-slate-800/60">
+                    <tr>
+                        <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                        <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Phone</th>
+                        <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Email</th>
+                        <th class="px-5 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                    {% for contact in contacts %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <td class="px-5 py-2 text-gray-900 dark:text-white">{{ contact.name }}</td>
+                        <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ contact.phone|default:"—" }}</td>
+                        <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ contact.email|default:"—" }}</td>
+                        <td class="px-5 py-2 text-right space-x-3">
+                            <a href="{% url 'contacts:edit' contact.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                            <a href="{% url 'contacts:delete' contact.pk %}" class="text-red-600 hover:underline">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No contacts yet — add one on the left.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

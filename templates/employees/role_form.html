@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Role{% endblock %}
+{% block content %}
+<style>.perm-row input[name$="-DELETE"] { display: none; }</style>
+<div class="max-w-xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}Add{% endif %} Role</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.name %}
+        {% include "core/components/form_field.html" with field=form.department %}
+        {% include "core/components/form_field.html" with field=form.description %}
+
+        <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Module access</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mb-2">Which app sections employees with this role can access, if they also have a system login.</p>
+
+            {{ formset.management_form }}
+            <div class="grid grid-cols-12 gap-2 px-1 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+                <div class="col-span-6">Module</div>
+                <div class="col-span-2 text-center">View</div>
+                <div class="col-span-2 text-center">Edit</div>
+                <div class="col-span-2"></div>
+            </div>
+            <div class="space-y-2" id="perm-rows">
+                {% for perm_form in formset %}
+                    <div class="perm-row grid grid-cols-12 gap-2 items-center">
+                        <div class="col-span-6">{{ perm_form.module }}</div>
+                        <div class="col-span-2 text-center">{{ perm_form.can_view }}</div>
+                        <div class="col-span-2 text-center">{{ perm_form.can_edit }}</div>
+                        <div class="col-span-2 text-right">
+                            {{ perm_form.id }}
+                            {{ perm_form.DELETE }}
+                            <button type="button" class="remove-perm-row-btn text-red-600 hover:text-red-800" title="Remove">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <template id="empty-perm-template">
+                <div class="perm-row grid grid-cols-12 gap-2 items-center">
+                    <div class="col-span-6">{{ formset.empty_form.module }}</div>
+                    <div class="col-span-2 text-center">{{ formset.empty_form.can_view }}</div>
+                    <div class="col-span-2 text-center">{{ formset.empty_form.can_edit }}</div>
+                    <div class="col-span-2 text-right">
+                        {{ formset.empty_form.id }}
+                        <button type="button" class="remove-perm-row-btn text-red-600 hover:text-red-800" title="Remove">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </template>
+
+            <button type="button" id="add-perm-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add module</button>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'employees:roles' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var rowsContainer = document.getElementById('perm-rows');
+    var totalFormsInput = document.getElementById('id_permissions-TOTAL_FORMS');
+
+    rowsContainer.addEventListener('click', function (e) {
+        var removeBtn = e.target.closest('.remove-perm-row-btn');
+        if (!removeBtn) return;
+        var row = removeBtn.closest('.perm-row');
+        var deleteInput = row.querySelector('[name$="-DELETE"]');
+        if (deleteInput) deleteInput.checked = true;
+        row.style.display = 'none';
+    });
+
+    document.getElementById('add-perm-btn').addEventListener('click', function () {
+        var formIndex = parseInt(totalFormsInput.value, 10);
+        var templateHtml = document.getElementById('empty-perm-template').innerHTML.replaceAll('__prefix__', formIndex);
+        rowsContainer.insertAdjacentHTML('beforeend', templateHtml);
+        totalFormsInput.value = formIndex + 1;
+    });
+})();
+</script>
+{% endblock %}

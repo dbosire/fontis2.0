@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Performance{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Performance Reviews" add_url="employees:performance_add" add_label="Add Review" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Period</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Rating</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Reviewer</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for review in reviews %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ review.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ review.review_period }}</td>
+                <td class="px-5 py-2">
+                    {% if review.rating == "excellent" %}{% status_badge "Excellent" "success" %}
+                    {% elif review.rating == "good" %}{% status_badge "Good" "success" %}
+                    {% elif review.rating == "satisfactory" %}{% status_badge "Satisfactory" "info" %}
+                    {% elif review.rating == "needs_improvement" %}{% status_badge "Needs Improvement" "warning" %}
+                    {% else %}{% status_badge "Poor" "danger" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ review.reviewer.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'employees:performance_delete' review.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No performance reviews yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

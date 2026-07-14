@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}{{ employee.get_full_name }}{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ employee.get_full_name }}</h2>
+        <p class="text-sm text-gray-500 dark:text-slate-400">{{ employee.employee_number }} &middot; {{ employee.role.name|default:"No role" }} &middot; {{ employee.department.name|default:"No department" }}</p>
+    </div>
+    <a href="{% url 'employees:edit' employee.pk %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Edit Employee</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2">Contact</p>
+        <p class="text-sm text-gray-700 dark:text-slate-300">{{ employee.phone|default:"—" }}</p>
+        <p class="text-sm text-gray-700 dark:text-slate-300">{{ employee.email|default:"—" }}</p>
+        <p class="text-sm text-gray-700 dark:text-slate-300">{{ employee.address|default:"—" }}</p>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2">Employment</p>
+        <p class="text-sm text-gray-700 dark:text-slate-300">{{ employee.get_employment_type_display }} &middot; Hired {{ employee.date_hired|date:"d M Y" }}</p>
+        <p class="text-sm text-gray-700 dark:text-slate-300">Basic salary: KES {{ employee.basic_salary|floatformat:2 }}</p>
+        <p class="text-sm">
+            {% if employee.status == "active" %}{% status_badge "Active" "success" %}
+            {% elif employee.status == "inactive" %}{% status_badge "Inactive" "warning" %}
+            {% else %}{% status_badge "Terminated" "danger" %}{% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recent Attendance</h3>
+            <a href="{% url 'employees:attendance' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for a in attendance_records %}
+                <tr><td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ a.date|date:"d M Y" }}</td><td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ a.get_status_display }}</td></tr>
+                {% empty %}
+                <tr><td class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No attendance records.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Leave Requests</h3>
+            <a href="{% url 'employees:leave' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for l in leave_requests %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ l.get_leave_type_display }} ({{ l.start_date|date:"d M" }} - {{ l.end_date|date:"d M Y" }})</td>
+                    <td class="px-5 py-2">
+                        {% if l.status == "approved" %}{% status_badge "Approved" "success" %}
+                        {% elif l.status == "rejected" %}{% status_badge "Rejected" "danger" %}
+                        {% else %}{% status_badge "Pending" "warning" %}{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No leave requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Payroll History</h3>
+            <a href="{% url 'employees:payroll' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for p in payrolls %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ p.period_start|date:"d M" }} - {{ p.period_end|date:"d M Y" }}</td>
+                    <td class="px-5 py-2 text-right text-gray-900 dark:text-white">KES {{ p.net_pay|floatformat:2 }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.get_status_display }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No payroll history.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Issued Items (Store)</h3>
+            <a href="{% url 'employees:assets' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for a in assets %}
+                <tr><td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ a.item_name }}</td><td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ a.get_status_display }}</td></tr>
+                {% empty %}
+                <tr><td colspan="2" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No items issued.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Performance Reviews</h3>
+            <a href="{% url 'employees:performance' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for r in performance_reviews %}
+                <tr><td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ r.review_period }}</td><td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ r.get_rating_display }}</td></tr>
+                {% empty %}
+                <tr><td colspan="2" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No reviews yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10">
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Training</h3>
+            <a href="{% url 'employees:training_records' %}" class="text-xs text-blue-600 hover:underline">View all</a>
+        </div>
+        <table class="min-w-full text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for t in training_records %}
+                <tr><td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ t.program.name }}</td><td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ t.get_status_display }}</td></tr>
+                {% empty %}
+                <tr><td colspan="2" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No training records.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block page_title %}Record Purchase{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Record Purchase</h2>
+    <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Recording a purchase immediately increases the material's stock on hand.</p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.material %}
+        {% include "core/components/form_field.html" with field=form.supplier %}
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.quantity %}
+            {% include "core/components/form_field.html" with field=form.unit_cost %}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.purchase_date %}
+            {% include "core/components/form_field.html" with field=form.expiry_date %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.notes %}
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'inventory:purchases' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save Purchase</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

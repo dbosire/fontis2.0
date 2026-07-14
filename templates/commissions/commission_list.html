@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Commissions{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Commissions" add_url="commissions:add" add_label="New Commission Account" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Account Manager</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Rate</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Onboarded</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Window Ends</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Earned to Date</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for account in accounts %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ account.customer.name }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ account.account_manager.get_full_name }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ account.commission_rate|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ account.onboarding_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ account.commission_window_end|date:"d M Y" }}</td>
+                <td class="px-5 py-2">
+                    {% if account.is_window_active %}{% status_badge "Active" "success" %}
+                    {% else %}{% status_badge "Expired" "neutral" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white font-medium">{{ account.earned_commission|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'commissions:detail' account.pk %}" class="text-blue-600 hover:underline">View</a>
+                    <a href="{% url 'commissions:edit' account.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'commissions:delete' account.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No commission accounts yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

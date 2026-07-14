@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Promotions{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Promotions" add_url="crm:promotion_add" add_label="New Promotion" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Title</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Discount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Window</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Channel</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Last Sent</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for promo in promotions %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ promo.title }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">
+                    {% if promo.discount_type == "percentage" %}{{ promo.discount_value|floatformat:0 }}%{% else %}KES {{ promo.discount_value|floatformat:0 }}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ promo.start_date|date:"d M" }} – {{ promo.end_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ promo.get_channel_display }}</td>
+                <td class="px-5 py-2">
+                    {% if promo.is_current %}{% status_badge "Active" "success" %}
+                    {% elif not promo.active %}{% status_badge "Disabled" "neutral" %}
+                    {% else %}{% status_badge "Scheduled/Expired" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ promo.sent_at|date:"d M Y H:i"|default:"Never" }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <form method="post" action="{% url 'crm:promotion_send' promo.pk %}" class="inline" onsubmit="return confirm('Send this promotion to all contacts with a phone/email on the selected channel now?');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-green-600 hover:underline">Send Now</button>
+                    </form>
+                    <a href="{% url 'crm:promotion_edit' promo.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'crm:promotion_delete' promo.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No promotions yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

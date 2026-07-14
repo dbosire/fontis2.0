@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_title %}Income Statement{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Income Statement</h2>
+        <form method="get" class="flex items-center gap-2">
+            <input type="date" name="date_start" value="{{ date_start }}" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm">
+            <span class="text-gray-400 dark:text-slate-500">to</span>
+            <input type="date" name="date_end" value="{{ date_end }}" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5">Go</button>
+        </form>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6 space-y-6 text-sm">
+        <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Income</h3>
+            {% for row in income_rows %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">{{ row.account.name }}</span><span class="text-gray-900 dark:text-white">{{ row.amount|floatformat:2 }}</span></div>
+            {% empty %}
+            <p class="text-gray-400 dark:text-slate-500">No income posted for this period.</p>
+            {% endfor %}
+            <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-medium"><span class="text-gray-900 dark:text-white">Total Income</span><span class="text-gray-900 dark:text-white">{{ total_income|floatformat:2 }}</span></div>
+        </div>
+
+        <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white mb-2">Expenses</h3>
+            {% for row in expense_rows %}
+            <div class="flex justify-between py-1"><span class="text-gray-600 dark:text-slate-400">{{ row.account.name }}</span><span class="text-gray-900 dark:text-white">{{ row.amount|floatformat:2 }}</span></div>
+            {% empty %}
+            <p class="text-gray-400 dark:text-slate-500">No expenses posted for this period.</p>
+            {% endfor %}
+            <div class="flex justify-between pt-2 border-t border-gray-200 dark:border-slate-700 font-medium"><span class="text-gray-900 dark:text-white">Total Expenses</span><span class="text-gray-900 dark:text-white">{{ total_expense|floatformat:2 }}</span></div>
+        </div>
+
+        <div class="flex justify-between pt-4 border-t-2 border-gray-300 dark:border-slate-600 text-base font-semibold">
+            <span class="text-gray-900 dark:text-white">Net Income</span>
+            <span class="{% if net_income < 0 %}text-red-600{% else %}text-green-600{% endif %}">{{ net_income|floatformat:2 }}</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}Reorder Levels{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Materials Needing Reorder" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Current Stock</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Reorder Level</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Supplier</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for material in materials %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40 bg-red-50 dark:bg-red-500/10">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ material.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ material.category }}</td>
+                <td class="px-5 py-2 text-right text-red-600 font-semibold">{{ material.current_stock|floatformat:2 }} {{ material.unit }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ material.reorder_level|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ material.default_supplier.name|default:"—" }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'inventory:purchase_add' %}" class="text-blue-600 hover:underline">Record Purchase</a>
+                    <a href="{% url 'inventory:material_edit' material.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">Nothing needs reordering right now.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}M-Pesa Transactions{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="M-Pesa Transactions" %}
+<p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4">Use <strong>Allocate</strong> to apply a payment to one or more customers' outstanding debts — for a lump-sum transaction (e.g. an agent's collected dues) that doesn't correspond to any single debt.</p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Time</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">TransID</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Phone</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Bill Ref</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Allocated</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for txn in transactions %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ txn.trans_datetime|date:"d M Y H:i"|default:txn.TransTime }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-mono text-xs">{{ txn.TransID }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.MSISDN }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.full_name }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ txn.TransAmount|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.BillRefNumber|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if txn.allocated_amount >= txn.TransAmount %}{% status_badge "Fully allocated" "success" %}
+                    {% elif txn.allocated_amount > 0 %}
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
+                            KES {{ txn.allocated_amount|floatformat:2 }} allocated
+                        </span>
+                    {% else %}<span class="text-gray-400 dark:text-slate-500 text-xs">—</span>{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right">
+                    {% if txn.TransID %}
+                    <a href="{% url 'mpesa:transaction_allocate' txn.TransID %}" class="text-blue-600 hover:underline">Allocate</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No transactions yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

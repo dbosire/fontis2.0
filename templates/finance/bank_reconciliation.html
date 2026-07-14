@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_title %}Reconcile — {{ bank_account.name }}{% endblock %}
+{% block content %}
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reconcile — {{ bank_account.name }}</h2>
+
+<form method="post" class="grid grid-cols-2 gap-4">
+    {% csrf_token %}
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Bank Statement (unmatched)</h3>
+        <div class="divide-y divide-gray-100 dark:divide-slate-800 max-h-96 overflow-y-auto">
+            {% for line in unmatched_statement %}
+            <label class="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                <input type="radio" name="statement_line_id" value="{{ line.pk }}" required>
+                <span class="flex-1">{{ line.date|date:"d M Y" }} — {{ line.description }}</span>
+                <span class="font-medium {% if line.amount < 0 %}text-red-600{% else %}text-green-600{% endif %}">{{ line.amount|floatformat:2 }}</span>
+            </label>
+            {% empty %}
+            <p class="px-4 py-6 text-sm text-gray-400 dark:text-slate-500">Nothing unmatched.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Ledger (unmatched)</h3>
+        <div class="divide-y divide-gray-100 dark:divide-slate-800 max-h-96 overflow-y-auto">
+            {% for line in unmatched_journal %}
+            <label class="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer">
+                <input type="radio" name="journal_line_id" value="{{ line.pk }}" required>
+                <span class="flex-1">{{ line.entry.date|date:"d M Y" }} — {{ line.entry.description }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">{{ line.debit|default:line.credit|floatformat:2 }}</span>
+            </label>
+            {% empty %}
+            <p class="px-4 py-6 text-sm text-gray-400 dark:text-slate-500">Nothing unmatched.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-span-2">
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Match Selected</button>
+    </div>
+</form>
+{% endblock %}

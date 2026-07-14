@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Purchase Requests{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Purchase Requests" add_url="purchasing:request_add" add_label="New Request" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Status</label>
+            <select name="status" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+        {% if selected_status %}<a href="{% url 'purchasing:requests' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>{% endif %}
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Reference</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Requested By</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Department</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Needed By</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for pr in requests %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-mono">{{ pr.reference }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ pr.requested_by.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ pr.department.name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ pr.needed_by_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if pr.status == "approved" %}{% status_badge "Approved" "success" %}
+                    {% elif pr.status == "rejected" %}{% status_badge "Rejected" "danger" %}
+                    {% elif pr.status == "converted" %}{% status_badge "Converted to PO" "info" %}
+                    {% elif pr.status == "cancelled" %}{% status_badge "Cancelled" "neutral" %}
+                    {% else %}{% status_badge "Pending" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'purchasing:request_detail' pr.pk %}" class="text-blue-600 hover:underline">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No purchase requests yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

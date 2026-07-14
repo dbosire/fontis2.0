@@ -1,0 +1,15 @@
+{% comment %}
+Usage: {% include "core/components/page_header.html" with title="Sales" add_url="sales:add" add_label="New Sale" %}
+add_url/add_label are optional — omit both to render a title-only header.
+{% endcomment %}
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h2>
+    {% if add_url %}
+    <a href="{% url add_url %}" class="inline-flex items-center gap-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        {{ add_label }}
+    </a>
+    {% endif %}
+</div>

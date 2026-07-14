@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block page_title %}Lab Test Results{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Lab Test Results" add_url="water_test:add" add_label="Add Test Result" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Sample</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Technician</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">TDS</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">EC</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">pH</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Salinity</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Temp</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for test in tests %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ test.date_created|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ test.sample_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ test.technician }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ test.tds }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ test.ec }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ test.ph }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ test.salinity }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ test.temperature }}</td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'water_test:edit' test.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'water_test:delete' test.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No test results yet — add your first one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

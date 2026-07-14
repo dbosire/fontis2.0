@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block page_title %}Pricing{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Jar Types & Pricing" add_url="maintenance:add" add_label="Add Jar Type" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Price</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Stock tracked</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Stock</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for jar_type in jar_types %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ jar_type.name }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ jar_type.pricing|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ jar_type.tracks_stock|yesno:"Yes,No" }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">
+                    {% if jar_type.tracks_stock %}
+                        {{ jar_type.available_stock|floatformat:0 }}
+                        {% if jar_type.is_inventory_linked %}
+                            <span class="ml-1 inline-flex items-center rounded-full bg-cyan-100 dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 text-xs px-2 py-0.5"
+                                  title="Tracked via {{ jar_type.linked_material_names }} in Inventory">linked</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-gray-300 dark:text-slate-600">—</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    <a href="{% url 'maintenance:edit' jar_type.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'maintenance:delete' jar_type.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No jar types yet — add your first one above.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

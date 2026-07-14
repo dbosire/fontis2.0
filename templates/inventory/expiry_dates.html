@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Expiry Dates{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Expiry Dates" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Material</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Batch Purchased</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Quantity</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Expiry Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for purchase in purchases %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ purchase.material.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ purchase.purchase_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ purchase.quantity|floatformat:2 }} {{ purchase.material.unit }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ purchase.expiry_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2">
+                    {% if purchase.expiry_date < today %}
+                        {% status_badge "Expired" "danger" %}
+                    {% elif purchase.expiry_date <= soon_cutoff %}
+                        {% status_badge "Expiring soon" "warning" %}
+                    {% else %}
+                        {% status_badge "OK" "success" %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No purchase batches with an expiry date on record.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

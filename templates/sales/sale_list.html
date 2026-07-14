@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Sales{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Sales" add_url="sales:add" add_label="New Sale" %}
+
+<form id="sales-filter-form" method="get"
+      hx-get="{% url 'sales:list' %}"
+      hx-target="#sales-results"
+      hx-swap="innerHTML"
+      hx-push-url="true"
+      hx-indicator="#sales-search-spinner"
+      hx-trigger="input changed delay:300ms from:find [name='q'], change from:find select, change from:find input[type=date], submit"
+      class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Search</label>
+            <div class="relative">
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="Customer name…" autocomplete="off"
+                       class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white pl-3 pr-8 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <svg id="sales-search-spinner" class="htmx-indicator absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400 dark:text-slate-500"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Payment</label>
+            <select name="status" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filters.status == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Type</label>
+            <select name="type" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in type_choices %}
+                    <option value="{{ value }}" {% if filters.type == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">From</label>
+            <input type="date" name="date_start" value="{{ filters.date_start }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">To</label>
+            <input type="date" name="date_end" value="{{ filters.date_end }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+            {% if filters.q or filters.status or filters.type or filters.date_start or filters.date_end %}
+                <a href="{% url 'sales:list' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<div id="sales-results">
+    {% include "sales/sale_results.html" %}
+</div>
+{% endblock %}

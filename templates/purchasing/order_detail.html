@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}{{ order.reference }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl space-y-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ order.reference }}</h2>
+            {% if order.status == "received" %}{% status_badge "Received" "success" %}
+            {% elif order.status == "partially_received" %}{% status_badge "Partially Received" "warning" %}
+            {% elif order.status == "sent" %}{% status_badge "Sent" "info" %}
+            {% elif order.status == "cancelled" %}{% status_badge "Cancelled" "danger" %}
+            {% elif order.status == "closed" %}{% status_badge "Closed" "neutral" %}
+            {% else %}{% status_badge "Draft" "neutral" %}{% endif %}
+        </div>
+        <dl class="grid grid-cols-2 gap-3 text-sm mb-4">
+            <div><dt class="text-gray-500 dark:text-slate-400">Supplier</dt><dd class="text-gray-900 dark:text-white">{{ order.supplier.name }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Order date</dt><dd class="text-gray-900 dark:text-white">{{ order.order_date|date:"d M Y" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Expected delivery</dt><dd class="text-gray-900 dark:text-white">{{ order.expected_delivery_date|date:"d M Y"|default:"—" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">From request</dt><dd class="text-gray-900 dark:text-white">{% if order.related_request %}<a href="{% url 'purchasing:request_detail' order.related_request.pk %}" class="text-blue-600 hover:underline">{{ order.related_request.reference }}</a>{% else %}—{% endif %}</dd></div>
+        </dl>
+
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm border border-gray-100 dark:border-slate-800 rounded-md overflow-hidden">
+            <thead class="bg-gray-50 dark:bg-slate-800/60">
+                <tr>
+                    <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Material</th>
+                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Ordered</th>
+                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Received</th>
+                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Outstanding</th>
+                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Unit Price</th>
+                    <th class="px-3 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Line Total</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for line in order.lines.all %}
+                <tr>
+                    <td class="px-3 py-2 text-gray-900 dark:text-white">{{ line.material.name }}</td>
+                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">{{ line.quantity_ordered|floatformat:2 }}</td>
+                    <td class="px-3 py-2 text-right text-gray-700 dark:text-slate-300">{{ line.quantity_received|floatformat:2 }}</td>
+                    <td class="px-3 py-2 text-right {% if line.quantity_outstanding > 0 %}text-amber-600 font-medium{% else %}text-gray-500 dark:text-slate-400{% endif %}">{{ line.quantity_outstanding|floatformat:2 }}</td>
+                    <td class="px-3 py-2 text-right text-gray-500 dark:text-slate-400">{{ line.unit_price|floatformat:2 }}</td>
+                    <td class="px-3 py-2 text-right text-gray-900 dark:text-white">{{ line.line_total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-gray-50 dark:bg-slate-800/60 font-semibold text-gray-900 dark:text-white">
+                <tr><td colspan="5" class="px-3 py-2 text-right">Total</td><td class="px-3 py-2 text-right">{{ order.total_amount|floatformat:2 }}</td></tr>
+            </tfoot>
+        </table>
+
+        <div class="flex flex-wrap gap-3 mt-4">
+            {% if order.status == "draft" %}
+                <a href="{% url 'purchasing:order_edit' order.pk %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Edit</a>
+                <form method="post" action="{% url 'purchasing:order_send' order.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Mark as Sent</button>
+                </form>
+            {% endif %}
+            {% if order.status != "draft" and order.status != "cancelled" and order.status != "closed" %}
+                <a href="{% url 'purchasing:receipt_add' order.pk %}" class="rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2">Receive Goods</a>
+            {% endif %}
+            <a href="{% url 'finance:bill_add' %}?purchase_order={{ order.pk }}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Create Invoice</a>
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Goods Receipts</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for receipt in order.receipts.all %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-900 dark:text-white font-mono">{{ receipt.reference }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ receipt.receipt_date|date:"d M Y" }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ receipt.received_by.get_full_name|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="px-5 py-6 text-center text-gray-400 dark:text-slate-500" colspan="3">No goods received yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Invoices</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for bill in order.bills.all %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-900 dark:text-white">{{ bill.bill_number|default:bill.pk }}</td>
+                    <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ bill.amount|floatformat:2 }}</td>
+                    <td class="px-5 py-2">
+                        {% if bill.status == "paid" %}{% status_badge "Paid" "success" %}
+                        {% elif bill.status == "partial" %}{% status_badge "Partial" "warning" %}
+                        {% else %}{% status_badge "Unpaid" "danger" %}{% endif %}
+                    </td>
+                    <td class="px-5 py-2 text-right"><a href="{% url 'finance:bill_detail' bill.pk %}" class="text-blue-600 hover:underline">View</a></td>
+                </tr>
+                {% empty %}
+                <tr><td class="px-5 py-6 text-center text-gray-400 dark:text-slate-500" colspan="4">No invoices recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

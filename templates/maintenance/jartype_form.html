@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block page_title %}{% if object %}Edit{% else %}Add{% endif %} Jar Type{% endblock %}
+{% block content %}
+<style>.material-row input[name$="-DELETE"] { display: none; }</style>
+<div class="max-w-lg bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}Add{% endif %} Jar Type</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        {% include "core/components/form_field.html" with field=form.name %}
+        {% include "core/components/form_field.html" with field=form.description %}
+        {% include "core/components/form_field.html" with field=form.pricing %}
+        <div class="flex items-center gap-2">
+            {{ form.has_stock }}
+            <label for="{{ form.has_stock.id_for_label }}" class="text-sm text-gray-700 dark:text-slate-300">{{ form.has_stock.label }}</label>
+        </div>
+
+        <div id="stock-tracking-section" class="space-y-4">
+            {% include "core/components/form_field.html" with field=form.stock %}
+            <p class="text-xs text-gray-500 dark:text-slate-400 -mt-2">
+                Manual count. If you link one or more raw materials below, the lowest available stock among them is used instead and this number is ignored.
+            </p>
+
+            <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Inventory link</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400 mb-2">Selling this product deducts stock from every raw material linked below (e.g. a "New Bottle + Water" product might consume a bottle, a cap, and a label all at once). Leave empty for a plain refill that doesn't use any new material.</p>
+
+                {{ formset.management_form }}
+                <div class="grid grid-cols-12 gap-2 px-1 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+                    <div class="col-span-7">Material</div>
+                    <div class="col-span-4">Qty per sale</div>
+                    <div class="col-span-1"></div>
+                </div>
+                <div class="space-y-2" id="material-rows">
+                    {% for usage_form in formset %}
+                        <div class="material-row grid grid-cols-12 gap-2 items-start">
+                            <div class="col-span-7">{{ usage_form.material }}</div>
+                            <div class="col-span-4">{{ usage_form.quantity_per_sale }}</div>
+                            <div class="col-span-1 text-right">
+                                {{ usage_form.id }}
+                                {{ usage_form.DELETE }}
+                                <button type="button" class="remove-material-row-btn text-red-600 hover:text-red-800" title="Remove">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            {% for error in usage_form.non_field_errors %}
+                                <p class="col-span-12 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <template id="empty-material-template">
+                    <div class="material-row grid grid-cols-12 gap-2 items-start">
+                        <div class="col-span-7">{{ formset.empty_form.material }}</div>
+                        <div class="col-span-4">{{ formset.empty_form.quantity_per_sale }}</div>
+                        <div class="col-span-1 text-right">
+                            {{ formset.empty_form.id }}
+                            <button type="button" class="remove-material-row-btn text-red-600 hover:text-red-800" title="Remove">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <button type="button" id="add-material-btn" class="mt-2 text-sm text-blue-600 hover:underline">+ Add material</button>
+            </div>
+        </div>
+
+        <div class="pt-2 border-t border-gray-100 dark:border-slate-800">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500 mb-2 mt-3">Water volume</p>
+            <div class="grid grid-cols-2 gap-4">
+                {% include "core/components/form_field.html" with field=form.volume_value %}
+                {% include "core/components/form_field.html" with field=form.volume_unit %}
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{% url 'maintenance:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var checkbox = document.getElementById('{{ form.has_stock.id_for_label }}');
+    var section = document.getElementById('stock-tracking-section');
+
+    function toggleStockSection() {
+        section.style.display = checkbox.checked ? '' : 'none';
+    }
+
+    checkbox.addEventListener('change', toggleStockSection);
+    toggleStockSection();
+
+    var rowsContainer = document.getElementById('material-rows');
+    var totalFormsInput = document.getElementById('id_material_usages-TOTAL_FORMS');
+
+    rowsContainer.addEventListener('click', function (e) {
+        var removeBtn = e.target.closest('.remove-material-row-btn');
+        if (!removeBtn) return;
+        var row = removeBtn.closest('.material-row');
+        var deleteInput = row.querySelector('[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+        }
+        row.style.display = 'none';
+    });
+
+    document.getElementById('add-material-btn').addEventListener('click', function () {
+        var formIndex = parseInt(totalFormsInput.value, 10);
+        var templateHtml = document.getElementById('empty-material-template').innerHTML.replaceAll('__prefix__', formIndex);
+        rowsContainer.insertAdjacentHTML('beforeend', templateHtml);
+        totalFormsInput.value = formIndex + 1;
+    });
+})();
+</script>
+{% endblock %}

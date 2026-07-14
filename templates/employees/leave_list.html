@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Leave{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Leave Requests" add_url="employees:leave_add" add_label="Request Leave" %}
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Dates</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Days</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for leave in leave_requests %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ leave.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ leave.get_leave_type_display }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ leave.start_date|date:"d M Y" }} - {{ leave.end_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ leave.days }}</td>
+                <td class="px-5 py-2">
+                    {% if leave.status == "approved" %}{% status_badge "Approved" "success" %}
+                    {% elif leave.status == "rejected" %}{% status_badge "Rejected" "danger" %}
+                    {% else %}{% status_badge "Pending" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3">
+                    {% if leave.status == "pending" %}
+                        <form method="post" action="{% url 'employees:leave_decision' leave.pk 'approved' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-green-600 hover:underline">Approve</button>
+                        </form>
+                        <form method="post" action="{% url 'employees:leave_decision' leave.pk 'rejected' %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="text-red-600 hover:underline">Reject</button>
+                        </form>
+                    {% endif %}
+                    <a href="{% url 'employees:leave_delete' leave.pk %}" class="text-gray-500 dark:text-slate-400 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No leave requests yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

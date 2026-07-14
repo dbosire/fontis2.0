@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block page_title %}Petty Cash Funds{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Petty Cash Funds" add_url="finance:petty_cash_fund_add" add_label="Add Fund" %}
+<p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4"><a href="{% url 'finance:petty_cash_vouchers' %}" class="text-blue-600 hover:underline">View all vouchers →</a></p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Custodian</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">GL Account</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Float Amount</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Current Balance</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for fund in funds %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ fund.name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ fund.custodian.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ fund.gl_account.code }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ fund.float_amount|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white font-medium">{{ fund.gl_account.balance_as_of|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'finance:petty_cash_replenish' fund.pk %}" class="text-blue-600 hover:underline">Replenish</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No petty cash funds yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
