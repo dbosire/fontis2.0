@@ -98,9 +98,12 @@ class PaymentLink(models.Model):
 
     @classmethod
     def create_for_sales(cls, sales, *, phone_number="", user=None):
-        """sales: an iterable/queryset of currently-UNPAID Sale rows belonging to one
-        customer. Raises ValueError if that's not the case — callers should validate
-        their selection before calling this, this is the last-line guard."""
+        """sales: an iterable/queryset of currently-outstanding (UNPAID or PARTIAL)
+        Sale rows belonging to one customer. Raises ValueError if that's not the
+        case — callers should validate their selection before calling this, this is
+        the last-line guard. `amount` is the sum of each sale's *remaining balance*,
+        not its original amount, so a link generated for a partially-paid debt only
+        charges what's actually still owed."""
         sales = list(sales)
         if not sales:
             raise ValueError("Select at least one debt.")
@@ -108,13 +111,13 @@ class PaymentLink(models.Model):
         if len(customer_names) > 1:
             raise ValueError("All selected debts must belong to the same customer.")
         from sales.models import Sale
-        if any(s.status != Sale.UNPAID for s in sales):
-            raise ValueError("All selected debts must currently be unpaid.")
+        if any(s.status not in (Sale.UNPAID, Sale.PARTIAL) for s in sales):
+            raise ValueError("All selected debts must currently be outstanding.")
 
         link = cls.objects.create(
             customer_name=sales[0].customer_name,
             phone_number=phone_number,
-            amount=round(sum(s.amount for s in sales), 2),
+            amount=round(sum(s.balance_due for s in sales), 2),
             created_by=user if user and getattr(user, "is_authenticated", False) else None,
         )
         link.sales.set(sales)

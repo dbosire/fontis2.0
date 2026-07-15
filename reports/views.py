@@ -40,6 +40,15 @@ def _status_bucket(qs, status):
     return {"total": agg["total"] or 0, "count": agg["count"] or 0}
 
 
+def _debt_total(qs):
+    """Like _status_bucket, but for "outstanding debt" — UNPAID and PARTIAL sales
+    together, summed by balance_due (not amount, since a PARTIAL sale's amount
+    overstates what's actually still owed). Can't be a DB .aggregate(Sum(...)) since
+    balance_due depends on each Sale's related debt_payments."""
+    sales = qs.filter(status__in=[Sale.UNPAID, Sale.PARTIAL])
+    return {"total": sum(s.balance_due for s in sales), "count": sales.count()}
+
+
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "reports/dashboard.html"
 
@@ -60,12 +69,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         month_items = SaleItem.objects.filter(sale__date_created__date__gte=month_start).select_related("jar_type")
         ctx["month_water_liters"] = sum(item.quantity * item.jar_type.volume_in_liters for item in month_items)
 
-        # 1. This month's debts vs total (all-time) debts
-        ctx["unpaid_total"] = (
-            Sale.objects.filter(status=Sale.UNPAID).aggregate(total=Sum("amount"))["total"] or 0
-        )
-        ctx["unpaid_count"] = Sale.objects.filter(status=Sale.UNPAID).count()
-        month_debts = _status_bucket(month_sales, Sale.UNPAID)
+        # 1. This month's debts vs total (all-time) debts — includes PARTIAL sales,
+        # summed by remaining balance, not their original full amount.
+        all_time_debts = _debt_total(Sale.objects.all())
+        ctx["unpaid_total"] = all_time_debts["total"]
+        ctx["unpaid_count"] = all_time_debts["count"]
+        month_debts = _debt_total(month_sales)
         ctx["month_debts_total"] = month_debts["total"]
         ctx["month_debts_count"] = month_debts["count"]
 
@@ -74,7 +83,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx["today_cash"] = _status_bucket(today_sales, Sale.CASH)
         ctx["today_mpesa"] = _status_bucket(today_sales, Sale.MPESA)
         ctx["today_unresolved"] = _status_bucket(today_sales, Sale.UNRESOLVED)
-        ctx["today_unpaid"] = _status_bucket(today_sales, Sale.UNPAID)
+        ctx["today_unpaid"] = _debt_total(today_sales)
         ctx["today_total"] = {
             "total": today_sales.aggregate(total=Sum("amount"))["total"] or 0,
             "count": today_sales.count(),
@@ -99,7 +108,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ctx["monthly_distribution"] = {
             "cash": float(_status_bucket(month_sales, Sale.CASH)["total"] or 0),
             "mpesa": float(_status_bucket(month_sales, Sale.MPESA)["total"] or 0),
-            "unpaid": float(_status_bucket(month_sales, Sale.UNPAID)["total"] or 0),
+            "unpaid": float(_debt_total(month_sales)["total"] or 0),
             "unresolved": float(_status_bucket(month_sales, Sale.UNRESOLVED)["total"] or 0),
         }
 

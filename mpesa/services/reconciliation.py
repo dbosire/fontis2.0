@@ -5,8 +5,8 @@ from zoneinfo import ZoneInfo
 from django.db import transaction
 from django.db.models import Sum
 
-from crm.services.loyalty import award_points_for_sale
-from finance.services import sync_journal_for_sale
+from debts.models import DebtPayment
+from debts.services import record_debt_payment
 from sales.models import Sale
 
 from ..models import LegacyTransactionAllocation, MpesaC2BTransaction, PaymentLink, STKPushAttempt
@@ -46,16 +46,20 @@ def confirm_payment_link(payment_link_id, *, via, receipt="", user=None):
     link.mpesa_receipt_number = receipt
     link.save(update_fields=["status", "paid_at", "confirmed_via", "mpesa_receipt_number"])
 
-    # Only touch sales still UNPAID at confirmation time — mirrors
+    # Only touch sales still outstanding at confirmation time — mirrors
     # debts/views.py::DebtBulkUpdateStatusView exactly, so a sale independently cleared
-    # by staff while the link was pending isn't double-counted. If that leaves the
-    # payer having paid for more than the still-unpaid subset, that's accepted,
-    # intentional behaviour — no overpayment/refund tracking exists or is in scope.
-    matched_ids = list(link.sales.filter(status=Sale.UNPAID).values_list("pk", flat=True))
-    Sale.objects.filter(pk__in=matched_ids).update(status=Sale.MPESA)
+    # by staff while the link was pending isn't double-counted. Each matched sale's
+    # *remaining balance* is recorded as an M-Pesa payment via record_debt_payment,
+    # which fires the same award/sync side effects a full payment already triggered
+    # here. If that leaves the payer having paid for more than the still-outstanding
+    # subset, that's accepted, intentional behaviour — no overpayment/refund tracking
+    # exists or is in scope.
+    matched_ids = list(link.sales.filter(status__in=[Sale.UNPAID, Sale.PARTIAL]).values_list("pk", flat=True))
     for sale in Sale.objects.filter(pk__in=matched_ids):
-        award_points_for_sale(sale, user=user)
-        sync_journal_for_sale(sale, user=user)
+        record_debt_payment(
+            sale, amount=sale.balance_due, payment_date=_now().date(),
+            payment_method=DebtPayment.MPESA, notes=f"Paid via Payment Link ({via})", user=user,
+        )
 
     return link
 
@@ -203,25 +207,33 @@ def legacy_allocated_total(trans_id):
 
 @transaction.atomic
 def allocate_legacy_transaction(trans_id, trans_amount, sale_ids, *, user=None):
-    """Marks the given (still-UNPAID) Sales as paid via M-Pesa and records that this
-    legacy `MpesaTransaction` — which predates PaymentLink/STK/C2B and has no built-in
-    way to reference what it paid for — covered them. One transaction can be split
-    across several sales/customers in one call, which is the whole point: this is for
-    a lump-sum payment (e.g. an agent depositing several customers' cash-collected
-    dues as one M-Pesa transaction) that doesn't correspond to any single debt.
+    """Marks the given (still-outstanding) Sales as paid via M-Pesa and records that
+    this legacy `MpesaTransaction` — which predates PaymentLink/STK/C2B and has no
+    built-in way to reference what it paid for — covered them. One transaction can be
+    split across several sales/customers in one call, which is the whole point: this
+    is for a lump-sum payment (e.g. an agent depositing several customers' cash-
+    collected dues as one M-Pesa transaction) that doesn't correspond to any single
+    debt.
 
-    Blocks (rather than silently truncating) if the selected sales' total would push
+    Each selected sale's *remaining balance* (not its original amount) is what gets
+    allocated and recorded as a payment via record_debt_payment, so a PARTIAL sale
+    already carrying some payments only needs its balance covered here. Blocks
+    (rather than silently truncating) if the selected sales' total balance would push
     allocations for this transaction past its own amount — the same financial-
     correctness rule as everywhere else in this module: never credit debts with money
     the transaction didn't actually carry. select_for_update() closes the same
     double-submit race confirm_payment_link() guards against.
+
+    Returns (sales, total_allocated) — total_allocated is what was actually applied
+    in this call, distinct from sum(s.amount for s in sales) once a sale can be
+    PARTIAL (its amount overstates what this particular transaction covered).
     """
     trans_amount = float(trans_amount)
     already_allocated = legacy_allocated_total(trans_id)
     remaining = trans_amount - already_allocated
 
-    sales = list(Sale.objects.select_for_update().filter(pk__in=sale_ids, status=Sale.UNPAID))
-    selected_total = sum(sale.amount for sale in sales)
+    sales = list(Sale.objects.select_for_update().filter(pk__in=sale_ids, status__in=[Sale.UNPAID, Sale.PARTIAL]))
+    selected_total = sum(sale.balance_due for sale in sales)
     if selected_total > remaining + 0.01:
         raise ValueError(
             f"Selected debts total KES {selected_total:,.2f}, which exceeds the "
@@ -229,10 +241,11 @@ def allocate_legacy_transaction(trans_id, trans_amount, sale_ids, *, user=None):
         )
 
     for sale in sales:
-        sale.status = Sale.MPESA
-        sale.save(update_fields=["status"])
-        LegacyTransactionAllocation.objects.create(trans_id=trans_id, sale=sale, amount=sale.amount, allocated_by=user)
-        award_points_for_sale(sale, user=user)
-        sync_journal_for_sale(sale, user=user)
+        amount = sale.balance_due
+        LegacyTransactionAllocation.objects.create(trans_id=trans_id, sale=sale, amount=amount, allocated_by=user)
+        record_debt_payment(
+            sale, amount=amount, payment_date=_now().date(),
+            payment_method=DebtPayment.MPESA, notes=f"Legacy M-Pesa transaction {trans_id}", user=user,
+        )
 
-    return sales
+    return sales, round(selected_total, 2)

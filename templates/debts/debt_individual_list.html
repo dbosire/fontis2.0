@@ -56,8 +56,16 @@
                         </td>
                         <td class="px-5 py-2 text-gray-700 dark:text-slate-300 w-36">{{ sale.date_created|date:"d M Y" }}</td>
                         <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</td>
-                        <td class="px-5 py-2 text-right font-medium text-red-600 w-28">{{ sale.amount|floatformat:2 }}</td>
-                        <td class="px-5 py-2 text-right w-16">
+                        <td class="px-5 py-2 text-right w-28">
+                            {% if sale.status == 4 %}
+                                <div class="font-medium text-amber-600">{{ sale.balance_due|floatformat:2 }}</div>
+                                <div class="text-xs text-gray-400 dark:text-slate-500">of {{ sale.amount|floatformat:2 }}</div>
+                            {% else %}
+                                <span class="font-medium text-red-600">{{ sale.amount|floatformat:2 }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-2 text-right w-32 space-x-2">
+                            <a href="{% url 'debts:sale_detail' sale.pk %}" class="text-blue-600 hover:underline">Details</a>
                             <a href="{% url 'sales:edit' sale.pk %}?next=debt" class="text-blue-600 hover:underline">Edit</a>
                         </td>
                     </tr>

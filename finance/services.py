@@ -116,7 +116,7 @@ def _sale_debit_account(mapping, sale):
         return mapping.cash_account
     if sale.status == Sale.MPESA:
         return mapping.mpesa_account
-    # UNPAID and UNRESOLVED both represent money not yet collected.
+    # UNPAID, PARTIAL, and UNRESOLVED all represent money not yet fully collected.
     return mapping.accounts_receivable_account
 
 

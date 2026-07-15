@@ -62,7 +62,7 @@ class TransactionAllocateView(EditMpesaMixin, View):
             messages.error(request, "Select at least one debt to allocate this payment to.")
             return redirect(reverse("mpesa:transaction_allocate", args=[trans_id]))
         try:
-            sales = allocate_legacy_transaction(trans_id, txn.TransAmount, sale_ids, user=request.user)
+            sales, total_allocated = allocate_legacy_transaction(trans_id, txn.TransAmount, sale_ids, user=request.user)
         except ValueError as exc:
             messages.error(request, str(exc))
             return redirect(reverse("mpesa:transaction_allocate", args=[trans_id]))
@@ -71,12 +71,12 @@ class TransactionAllocateView(EditMpesaMixin, View):
             return redirect(reverse("mpesa:transaction_allocate", args=[trans_id]))
         messages.success(
             request,
-            f"Allocated KES {sum(s.amount for s in sales):,.2f} across {len(sales)} debt{'s' if len(sales) != 1 else ''}.",
+            f"Allocated KES {total_allocated:,.2f} across {len(sales)} debt{'s' if len(sales) != 1 else ''}.",
         )
         return redirect(reverse("mpesa:list"))
 
     def _context(self, txn):
-        sales = Sale.objects.filter(status=Sale.UNPAID).prefetch_related("items__jar_type")
+        sales = Sale.objects.filter(status__in=[Sale.UNPAID, Sale.PARTIAL]).prefetch_related("items__jar_type", "debt_payments")
         groups = {}
         order = []
         for sale in sales:
@@ -85,7 +85,7 @@ class TransactionAllocateView(EditMpesaMixin, View):
                 groups[key] = {"customer_name": key, "sales": [], "total_amount": 0.0}
                 order.append(key)
             groups[key]["sales"].append(sale)
-            groups[key]["total_amount"] += sale.amount
+            groups[key]["total_amount"] += sale.balance_due
 
         allocated = legacy_allocated_total(txn.TransID)
         return {
@@ -124,7 +124,7 @@ class PaymentLinkCreateView(EditMpesaMixin, View):
             messages.error(request, "Select at least one debt first.")
             return redirect(redirect_url)
 
-        sales = Sale.objects.filter(pk__in=sale_ids, status=Sale.UNPAID)
+        sales = Sale.objects.filter(pk__in=sale_ids, status__in=[Sale.UNPAID, Sale.PARTIAL])
         try:
             link = PaymentLink.create_for_sales(sales, user=request.user)
         except ValueError as exc:

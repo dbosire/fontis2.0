@@ -47,6 +47,7 @@
                         {% if sale.status == 0 %}{% status_badge "Unpaid" "warning" %}
                         {% elif sale.status == 1 %}{% status_badge "Cash" "success" %}
                         {% elif sale.status == 2 %}{% status_badge "M-Pesa" "info" %}
+                        {% elif sale.status == 4 %}{% status_badge "Partially Paid" "warning" %}
                         {% else %}{% status_badge "Unresolved" "danger" %}{% endif %}
                     </td>
                     <td class="px-5 py-2 text-right space-x-3">

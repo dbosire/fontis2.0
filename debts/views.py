@@ -6,8 +6,7 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
-from django.db.models import Count, Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
@@ -15,12 +14,16 @@ from django.views.generic import ListView
 
 from core.exports import build_xlsx, render_pdf
 from core.mixins import ModulePermissionRequiredMixin
-from crm.services.loyalty import award_points_for_sale
-from finance.services import sync_journal_for_sale
 from mpesa.models import PaymentLink
 from mpesa.services.daraja import MPESA_SHORTCODE
 from sales.models import Sale
 from system_info.services import get_settings_dict
+
+from .forms import DebtPaymentForm
+from .models import DebtPayment
+from .services import record_debt_payment
+
+OUTSTANDING_STATUSES = [Sale.UNPAID, Sale.PARTIAL]
 
 
 # USE_TZ=False project-wide — naive local time only, matching every other app.
@@ -39,12 +42,19 @@ class EditDebtsMixin(ModulePermissionRequiredMixin):
 
 
 def _grouped_debts_queryset():
-    return (
-        Sale.objects.filter(status=Sale.UNPAID)
-        .values("customer_name")
-        .annotate(total_amount=Sum("amount"), total_orders=Count("id"))
-        .order_by("-total_amount")
-    )
+    # Grouped in Python, not a DB .annotate(Sum("amount")) — balance_due depends on
+    # each Sale's related debt_payments, which isn't a plain column to sum in the DB.
+    sales = Sale.objects.filter(status__in=OUTSTANDING_STATUSES).prefetch_related("debt_payments")
+    groups = {}
+    order = []
+    for sale in sales:
+        key = sale.customer_name
+        if key not in groups:
+            groups[key] = {"customer_name": key, "total_amount": 0.0, "total_orders": 0}
+            order.append(key)
+        groups[key]["total_amount"] += sale.balance_due
+        groups[key]["total_orders"] += 1
+    return sorted((groups[key] for key in order), key=lambda g: -g["total_amount"])
 
 
 class DebtGroupedListView(ViewDebtsMixin, ListView):
@@ -70,7 +80,7 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        sales = Sale.objects.filter(status=Sale.UNPAID).prefetch_related("items__jar_type")
+        sales = Sale.objects.filter(status__in=OUTSTANDING_STATUSES).prefetch_related("items__jar_type", "debt_payments")
         groups = {}
         order = []
         for sale in sales:
@@ -79,7 +89,7 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
                 groups[key] = {"customer_name": key, "sales": [], "total_amount": 0.0}
                 order.append(key)
             groups[key]["sales"].append(sale)
-            groups[key]["total_amount"] += sale.amount
+            groups[key]["total_amount"] += sale.balance_due
         return [groups[key] for key in order]
 
     def get_context_data(self, **kwargs):
@@ -140,9 +150,9 @@ def _logo_data_uri():
 def _invoice_context(request, customer):
     """Shared by the in-app HTML preview and the downloadable PDF, so the two never
     drift apart on what an invoice actually contains."""
-    sales = Sale.objects.filter(customer_name=customer, status=Sale.UNPAID).prefetch_related("items__jar_type")
+    sales = Sale.objects.filter(customer_name=customer, status__in=OUTSTANDING_STATUSES).prefetch_related("items__jar_type", "debt_payments")
     sale_ids = [sale.pk for sale in sales]
-    total = sum(sale.amount for sale in sales)
+    total = sum(sale.balance_due for sale in sales)
 
     # Same "pay this online" link a customer would already have from an SMS, if staff
     # sent one and it's still usable — surfaced here too since a printed/emailed
@@ -201,17 +211,70 @@ class DebtBulkUpdateStatusView(EditDebtsMixin, View):
         elif status not in valid_statuses:
             messages.error(request, "Choose a valid payment status.")
         else:
-            # Only touch rows that are still unpaid at the time of the update, so a
-            # stale checked box from an already-cleared debt can't double-apply.
-            matched_ids = list(Sale.objects.filter(pk__in=sale_ids, status=Sale.UNPAID).values_list("pk", flat=True))
-            updated = Sale.objects.filter(pk__in=matched_ids).update(status=status)
-            for sale in Sale.objects.filter(pk__in=matched_ids):
-                award_points_for_sale(sale, user=request.user)
-                sync_journal_for_sale(sale, user=request.user)
-            status_label = dict(Sale.STATUS_CHOICES).get(int(status), status)
+            status = int(status)
+            # Only touch rows that are still outstanding at the time of the update, so
+            # a stale checked box from an already-cleared debt can't double-apply.
+            matched = list(Sale.objects.filter(pk__in=sale_ids, status__in=OUTSTANDING_STATUSES))
+            updated = 0
+            if status in (Sale.CASH, Sale.MPESA):
+                # Route through record_debt_payment for each debt's *remaining*
+                # balance (not its original amount) rather than a bare status flip —
+                # keeps the DebtPayment ledger accurate for a debt that was already
+                # partially paid.
+                method = DebtPayment.CASH if status == Sale.CASH else DebtPayment.MPESA
+                for sale in matched:
+                    try:
+                        record_debt_payment(
+                            sale, amount=sale.balance_due, payment_date=_now().date(),
+                            payment_method=method, notes="Bulk-marked from Individual Debts",
+                            user=request.user,
+                        )
+                        updated += 1
+                    except ValueError:
+                        continue
+            else:
+                # Unresolved — no payment implied, same direct flip as before.
+                matched_ids = [sale.pk for sale in matched]
+                updated = Sale.objects.filter(pk__in=matched_ids).update(status=status)
+
+            status_label = dict(Sale.STATUS_CHOICES).get(status, status)
             if updated:
                 messages.success(request, f"Updated {updated} debt{'s' if updated != 1 else ''} to “{status_label}”.")
             else:
                 messages.warning(request, "None of the selected debts could be updated (they may already be cleared).")
 
         return redirect(redirect_url)
+
+
+class DebtDetailView(ViewDebtsMixin, View):
+    """Per-debt detail — line items, payment history, and (if a balance remains) a
+    form to record a new payment against this specific Sale. Mirrors
+    finance/views.py::BillDetailView."""
+
+    template_name = "debts/debt_detail.html"
+
+    def get(self, request, pk):
+        sale = get_object_or_404(Sale.objects.prefetch_related("items__jar_type", "debt_payments"), pk=pk)
+        return render(request, self.template_name, {
+            "sale": sale,
+            "form": DebtPaymentForm(initial={"payment_date": _now().date()}),
+        })
+
+
+class DebtPaymentCreateView(EditDebtsMixin, View):
+    def post(self, request, pk):
+        sale = get_object_or_404(Sale, pk=pk)
+        form = DebtPaymentForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                record_debt_payment(
+                    sale, amount=data["amount"], payment_date=data["payment_date"],
+                    payment_method=data["payment_method"], notes=data["notes"], user=request.user,
+                )
+                messages.success(request, f"Payment of KES {data['amount']:,.2f} recorded for {sale.customer_name}.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
+        else:
+            messages.error(request, "Could not record that payment.")
+        return redirect(reverse("debts:sale_detail", args=[pk]))

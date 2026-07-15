@@ -12,4 +12,6 @@ urlpatterns = [
     path("invoice/", views.InvoicePdfView.as_view(), name="invoice"),
     path("invoice/preview/", views.InvoicePreviewView.as_view(), name="invoice_preview"),
     path("bulk-update/", views.DebtBulkUpdateStatusView.as_view(), name="bulk_update"),
+    path("sale/<int:pk>/", views.DebtDetailView.as_view(), name="sale_detail"),
+    path("sale/<int:pk>/pay/", views.DebtPaymentCreateView.as_view(), name="record_payment"),
 ]
