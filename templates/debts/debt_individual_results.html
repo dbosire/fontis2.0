@@ -1,0 +1,148 @@
+{% load ui %}
+<form method="post" action="{% url 'debts:bulk_update' %}" id="bulk-debts-form">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+    <div class="flex flex-wrap items-center gap-3 mb-3 bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-3">
+        <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400">
+            <input type="checkbox" id="select-all-debts" class="rounded border-gray-300 dark:border-slate-600">
+            Select all
+        </label>
+        <span id="selected-count" class="text-sm text-gray-500 dark:text-slate-400">0 selected</span>
+        <select name="status" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <option value="1">Mark as Cash</option>
+            <option value="2">Mark as M-Pesa</option>
+            <option value="3">Mark as Unresolved</option>
+        </select>
+        <button type="submit" id="bulk-apply-btn" disabled
+                class="rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-1.5 transition-colors">
+            Apply to Selected
+        </button>
+        <button type="submit" id="send-link-btn" disabled formaction="{% url 'mpesa:payment_link_add' %}"
+                class="rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-sm font-medium px-4 py-1.5 transition-colors">
+            Send Payment Link
+        </button>
+        <p class="text-xs text-gray-400 dark:text-slate-500 w-full sm:w-auto">Selected debts must all belong to one customer to bundle into a payment link.</p>
+    </div>
+
+    <div class="space-y-3">
+        {% for group in groups %}
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden" data-group>
+            <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-700">
+                <input type="checkbox" class="group-select-all rounded border-gray-300 dark:border-slate-600">
+                <span class="font-medium text-gray-900 dark:text-white">{{ group.customer_name }}</span>
+                <span class="text-xs text-gray-400 dark:text-slate-500">{{ group.sales|length }} debt{{ group.sales|length|pluralize }}</span>
+                {% if group.latest_link %}
+                <a href="{% url 'mpesa:payment_link_detail' group.latest_link.pk %}" class="text-xs hover:opacity-80">
+                    {% if group.latest_link.status == "paid" %}{% status_badge "Link: Paid" "success" %}
+                    {% elif group.latest_link.status == "cancelled" %}{% status_badge "Link: Cancelled" "neutral" %}
+                    {% elif group.latest_link.is_expired %}{% status_badge "Link: Expired" "danger" %}
+                    {% else %}{% status_badge "Link: Pending" "warning" %}{% endif %}
+                </a>
+                {% endif %}
+                <span class="ml-auto font-semibold text-red-600">{{ group.total_amount|floatformat:2 }}</span>
+            </div>
+            <table class="min-w-full divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+                <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                    {% for sale in group.sales %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                        <td class="px-5 py-2 w-8">
+                            <input type="checkbox" name="sale_ids" value="{{ sale.pk }}" class="debt-row-checkbox rounded border-gray-300 dark:border-slate-600" data-customer="{{ group.customer_name }}">
+                        </td>
+                        <td class="px-5 py-2 text-gray-700 dark:text-slate-300 w-36">{{ sale.date_created|date:"d M Y" }}</td>
+                        <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.items.count }} item{{ sale.items.count|pluralize }}</td>
+                        <td class="px-5 py-2 text-right w-28">
+                            {% if sale.status == 4 %}
+                                <div class="font-medium text-amber-600">{{ sale.balance_due|floatformat:2 }}</div>
+                                <div class="text-xs text-gray-400 dark:text-slate-500">of {{ sale.amount|floatformat:2 }}</div>
+                            {% else %}
+                                <span class="font-medium text-red-600">{{ sale.amount|floatformat:2 }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-2 text-right w-32 space-x-2">
+                            <a href="{% url 'debts:sale_detail' sale.pk %}" class="text-blue-600 hover:underline">Details</a>
+                            <a href="{% url 'sales:edit' sale.pk %}?next=debt" class="text-blue-600 hover:underline">Edit</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% empty %}
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 px-5 py-10 text-center text-gray-400 dark:text-slate-500">{% if q %}No outstanding debts match “{{ q }}”.{% else %}No outstanding debts.{% endif %}</div>
+        {% endfor %}
+    </div>
+</form>
+
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+
+<script>
+(function () {
+    const selectAll = document.getElementById('select-all-debts');
+    const rowCheckboxes = document.querySelectorAll('.debt-row-checkbox');
+    const groupCheckboxes = document.querySelectorAll('.group-select-all');
+    const applyBtn = document.getElementById('bulk-apply-btn');
+    const sendLinkBtn = document.getElementById('send-link-btn');
+    const countEl = document.getElementById('selected-count');
+    let lastClickedBtn = null;
+
+    function rowsInGroup(groupCheckbox) {
+        return groupCheckbox.closest('[data-group]').querySelectorAll('.debt-row-checkbox');
+    }
+
+    function updateToolbar() {
+        const checked = Array.from(rowCheckboxes).filter(function (cb) { return cb.checked; });
+        const customers = new Set(checked.map(function (cb) { return cb.dataset.customer; }));
+        countEl.textContent = checked.length + ' selected' + (customers.size > 1 ? ' (multiple customers)' : '');
+        applyBtn.disabled = checked.length === 0;
+        sendLinkBtn.disabled = checked.length === 0 || customers.size > 1;
+        selectAll.checked = checked.length > 0 && checked.length === rowCheckboxes.length;
+        selectAll.indeterminate = checked.length > 0 && checked.length < rowCheckboxes.length;
+
+        groupCheckboxes.forEach(function (gcb) {
+            const rows = rowsInGroup(gcb);
+            const checkedInGroup = Array.from(rows).filter(function (r) { return r.checked; }).length;
+            gcb.checked = checkedInGroup > 0 && checkedInGroup === rows.length;
+            gcb.indeterminate = checkedInGroup > 0 && checkedInGroup < rows.length;
+        });
+    }
+
+    selectAll.addEventListener('change', function () {
+        rowCheckboxes.forEach(function (cb) { cb.checked = selectAll.checked; });
+        updateToolbar();
+    });
+
+    groupCheckboxes.forEach(function (gcb) {
+        gcb.addEventListener('change', function () {
+            rowsInGroup(gcb).forEach(function (cb) { cb.checked = gcb.checked; });
+            updateToolbar();
+        });
+    });
+
+    rowCheckboxes.forEach(function (cb) { cb.addEventListener('change', updateToolbar); });
+
+    [applyBtn, sendLinkBtn].forEach(function (btn) {
+        btn.addEventListener('click', function () { lastClickedBtn = btn; });
+    });
+
+    document.getElementById('bulk-debts-form').addEventListener('submit', function (e) {
+        const checked = document.querySelectorAll('.debt-row-checkbox:checked').length;
+        if (checked === 0) {
+            e.preventDefault();
+            return;
+        }
+        const verb = lastClickedBtn === sendLinkBtn ? 'Send a payment link for' : 'Update';
+        if (!confirm(verb + ' ' + checked + ' selected debt(s)?')) {
+            e.preventDefault();
+        }
+    });
+
+    updateToolbar();
+})();
+</script>

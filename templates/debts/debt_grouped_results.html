@@ -1,0 +1,36 @@
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Total Orders</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Total Owed</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for row in grouped_debts %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ row.customer_name }}</td>
+                <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ row.total_orders }}</td>
+                <td class="px-5 py-2 text-right font-medium text-red-600">{{ row.total_amount|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'debts:invoice_preview' %}?customer={{ row.customer_name|urlencode }}" class="text-blue-600 hover:underline">Invoice</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">{% if q %}No outstanding debts match “{{ q }}”.{% else %}No outstanding debts.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+        {% if grouped_debts %}
+        <tfoot>
+            <tr class="bg-gray-50 dark:bg-slate-800/60 font-semibold">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">Total</td>
+                <td></td>
+                <td class="px-5 py-2 text-right text-red-700">{{ grand_total|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+</div>

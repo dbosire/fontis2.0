@@ -41,10 +41,12 @@ class EditDebtsMixin(ModulePermissionRequiredMixin):
     permission_level = "edit"
 
 
-def _grouped_debts_queryset():
+def _grouped_debts_queryset(q=""):
     # Grouped in Python, not a DB .annotate(Sum("amount")) — balance_due depends on
     # each Sale's related debt_payments, which isn't a plain column to sum in the DB.
     sales = Sale.objects.filter(status__in=OUTSTANDING_STATUSES).prefetch_related("debt_payments")
+    if q:
+        sales = sales.filter(customer_name__icontains=q)
     groups = {}
     order = []
     for sale in sales:
@@ -61,12 +63,21 @@ class DebtGroupedListView(ViewDebtsMixin, ListView):
     template_name = "debts/debt_grouped_list.html"
     context_object_name = "grouped_debts"
 
+    def get_template_names(self):
+        # Filter-as-you-type: an htmx request only needs the results partial (table +
+        # footer), not the full page with the search form and sidebar — mirrors
+        # sales/views.py::SaleListView.
+        if self.request.htmx:
+            return ["debts/debt_grouped_results.html"]
+        return [self.template_name]
+
     def get_queryset(self):
-        return _grouped_debts_queryset()
+        return _grouped_debts_queryset(self.request.GET.get("q", "").strip())
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["grand_total"] = sum(row["total_amount"] for row in ctx["grouped_debts"])
+        ctx["q"] = self.request.GET.get("q", "")
         return ctx
 
 
@@ -79,8 +90,16 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
     context_object_name = "groups"
     paginate_by = 20
 
+    def get_template_names(self):
+        if self.request.htmx:
+            return ["debts/debt_individual_results.html"]
+        return [self.template_name]
+
     def get_queryset(self):
         sales = Sale.objects.filter(status__in=OUTSTANDING_STATUSES).prefetch_related("items__jar_type", "debt_payments")
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            sales = sales.filter(customer_name__icontains=q)
         groups = {}
         order = []
         for sale in sales:
@@ -103,6 +122,7 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
             latest_link_by_customer.setdefault(link.customer_name, link)
         for group in groups:
             group["latest_link"] = latest_link_by_customer.get(group["customer_name"])
+        ctx["q"] = self.request.GET.get("q", "")
         return ctx
 
 
