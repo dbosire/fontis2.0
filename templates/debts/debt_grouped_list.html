@@ -4,6 +4,8 @@
 <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Grouped Debts</h2>
     <div class="space-x-3 text-sm">
+        <a href="{% url 'debts:credit_list' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 px-4 py-2 text-gray-700 dark:text-slate-300">Customer Credit</a>
+        <a href="{% url 'debts:prepayment_add' %}" class="rounded-md bg-green-600 hover:bg-green-700 px-4 py-2 text-white font-medium">+ Record Prepayment</a>
         <a href="{% url 'debts:export_excel' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 px-4 py-2 text-gray-700 dark:text-slate-300">Export Excel</a>
         <a href="{% url 'debts:export_pdf' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 px-4 py-2 text-gray-700 dark:text-slate-300">Export PDF</a>
     </div>

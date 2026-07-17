@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block page_title %}Customer Credit{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Customer Credit</h2>
+    <div class="space-x-3 text-sm">
+        <a href="{% url 'debts:prepayment_add' %}" class="rounded-md bg-green-600 hover:bg-green-700 px-4 py-2 text-white font-medium">+ Record Prepayment</a>
+        <a href="{% url 'debts:individual' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 px-4 py-2 text-gray-700 dark:text-slate-300">Individual Debts</a>
+    </div>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Credit Available</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for row in balances %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ row.display_name }}</td>
+                <td class="px-5 py-2 text-right font-medium text-green-600">{{ row.balance|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right">
+                    <a href="{% url 'debts:credit_detail' %}?customer={{ row.display_name|urlencode }}" class="text-blue-600 hover:underline">History</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No customers currently have credit.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

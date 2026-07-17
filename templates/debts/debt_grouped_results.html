@@ -1,3 +1,4 @@
+{% load ui %}
 <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
     <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
         <thead class="bg-gray-50 dark:bg-slate-800/60">
@@ -11,7 +12,15 @@
         <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
             {% for row in grouped_debts %}
             <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
-                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ row.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">
+                    {{ row.customer_name }}
+                    {% if row.credit_balance %}
+                    <a href="{% url 'debts:credit_detail' %}?customer={{ row.customer_name|urlencode }}" class="ml-2 inline-flex items-center gap-1 hover:opacity-80 align-middle">
+                        {% status_badge "Credit" "success" %}
+                        <span class="text-xs text-green-700 dark:text-green-300">{{ row.credit_balance|floatformat:2 }}</span>
+                    </a>
+                    {% endif %}
+                </td>
                 <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{{ row.total_orders }}</td>
                 <td class="px-5 py-2 text-right font-medium text-red-600">{{ row.total_amount|floatformat:2 }}</td>
                 <td class="px-5 py-2 text-right">

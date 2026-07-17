@@ -63,6 +63,7 @@
                     {% if sale.status == 1 %}{% status_badge "Cash" "info" %}
                     {% elif sale.status == 2 %}{% status_badge "M-Pesa" "success" %}
                     {% elif sale.status == 4 %}{% status_badge "Partially Paid" "warning" %}
+                    {% elif sale.status == 5 %}{% status_badge "Credit" "info" %}
                     {% else %}{% status_badge "Unpaid" "warning" %}{% endif %}
                 </td>
             </tr>

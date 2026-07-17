@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block page_title %}{{ customer_name }} — Credit{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ customer_name }}</h2>
+            <div class="text-right">
+                <div class="text-xs text-gray-500 dark:text-slate-400">Current balance</div>
+                <div class="text-xl font-semibold text-green-600">{{ balance|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-700 dark:text-slate-300 border-b border-gray-200 dark:border-slate-700">Credit History</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-slate-800/60">
+                <tr>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Source</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Sale</th>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Notes</th>
+                    <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for entry in entries %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ entry.payment_date|date:"d M Y" }}</td>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ entry.get_source_display }}{% if entry.payment_method %} ({{ entry.get_payment_method_display }}){% endif %}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">
+                        {% if entry.related_sale %}<a href="{% url 'debts:sale_detail' entry.related_sale.pk %}" class="text-blue-600 hover:underline">Sale #{{ entry.related_sale.pk }}</a>{% else %}—{% endif %}
+                    </td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ entry.notes|default:"—" }}</td>
+                    <td class="px-5 py-2 text-right font-medium {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ entry.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

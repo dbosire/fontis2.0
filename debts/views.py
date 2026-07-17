@@ -6,6 +6,9 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.db.models import Max, Sum
+from django.db.models.functions import Lower
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -19,11 +22,31 @@ from mpesa.services.daraja import MPESA_SHORTCODE
 from sales.models import Sale
 from system_info.services import get_settings_dict
 
-from .forms import DebtPaymentForm
-from .models import DebtPayment
-from .services import record_debt_payment
+from .forms import DebtPaymentForm, PrepaymentForm
+from .models import CustomerCredit, DebtPayment
+from .services import record_debt_payment, record_prepayment
 
 OUTSTANDING_STATUSES = [Sale.UNPAID, Sale.PARTIAL]
+
+
+def _credit_balances_for(customer_names):
+    """Batched credit-balance lookup for a page's worth of customers at once, so the
+    Grouped/Individual Debts list pages don't run one query per row. Matches
+    case-insensitively (grouped on a lowercased name) to stay consistent with
+    debts/services.py::customer_credit_balance's iexact semantics — a Sale's
+    customer_name and a CustomerCredit's customer_name aren't guaranteed to match case
+    exactly, being two independently-typed free-text fields."""
+    if not customer_names:
+        return {}
+    lowered = [name.lower() for name in customer_names]
+    rows = (
+        CustomerCredit.objects.annotate(lower_name=Lower("customer_name"))
+        .filter(lower_name__in=lowered)
+        .values("lower_name")
+        .annotate(balance=Sum("amount"))
+    )
+    balance_by_lower = {row["lower_name"]: row["balance"] for row in rows if row["balance"] and row["balance"] > 0.01}
+    return {name: balance_by_lower[name.lower()] for name in customer_names if name.lower() in balance_by_lower}
 
 
 # USE_TZ=False project-wide — naive local time only, matching every other app.
@@ -78,6 +101,9 @@ class DebtGroupedListView(ViewDebtsMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx["grand_total"] = sum(row["total_amount"] for row in ctx["grouped_debts"])
         ctx["q"] = self.request.GET.get("q", "")
+        credit_balances = _credit_balances_for([row["customer_name"] for row in ctx["grouped_debts"]])
+        for row in ctx["grouped_debts"]:
+            row["credit_balance"] = credit_balances.get(row["customer_name"])
         return ctx
 
 
@@ -122,6 +148,9 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
             latest_link_by_customer.setdefault(link.customer_name, link)
         for group in groups:
             group["latest_link"] = latest_link_by_customer.get(group["customer_name"])
+        credit_balances = _credit_balances_for(customer_names)
+        for group in groups:
+            group["credit_balance"] = credit_balances.get(group["customer_name"])
         ctx["q"] = self.request.GET.get("q", "")
         return ctx
 
@@ -298,3 +327,80 @@ class DebtPaymentCreateView(EditDebtsMixin, View):
         else:
             messages.error(request, "Could not record that payment.")
         return redirect(reverse("debts:sale_detail", args=[pk]))
+
+
+class PrepaymentCreateView(EditDebtsMixin, View):
+    """Records cash received from a customer with no debt to apply it to yet. Reuses
+    the same customer_names autocomplete already built for the Sale form
+    (sales/views.py::SaleFormView.get_extra_context)."""
+
+    template_name = "debts/prepayment_form.html"
+
+    def _customer_names(self):
+        return list(
+            Sale.objects.exclude(customer_name="Guest")
+            .values_list("customer_name", flat=True)
+            .distinct()
+            .order_by("customer_name")
+        )
+
+    def get(self, request):
+        form = PrepaymentForm(initial={"payment_date": _now().date()})
+        return render(request, self.template_name, {"form": form, "customer_names": self._customer_names()})
+
+    def post(self, request):
+        form = PrepaymentForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            try:
+                record_prepayment(
+                    data["customer_name"], amount=data["amount"], payment_date=data["payment_date"],
+                    payment_method=data["payment_method"], notes=data["notes"], user=request.user,
+                )
+                messages.success(
+                    request,
+                    f"Prepayment of KES {data['amount']:,.2f} recorded for {data['customer_name']}.",
+                )
+                return redirect(reverse("debts:individual"))
+            except ValueError as exc:
+                messages.error(request, str(exc))
+        else:
+            messages.error(request, "Could not record that prepayment.")
+        return render(request, self.template_name, {"form": form, "customer_names": self._customer_names()})
+
+
+class CustomerCreditListView(ViewDebtsMixin, ListView):
+    """Every customer with a nonzero credit balance — the "track it as they utilize
+    it" view, linking through to each customer's full ledger history."""
+
+    template_name = "debts/customer_credit_list.html"
+    context_object_name = "balances"
+
+    def get_queryset(self):
+        rows = (
+            CustomerCredit.objects.annotate(lower_name=Lower("customer_name"))
+            .values("lower_name")
+            .annotate(balance=Sum("amount"), display_name=Max("customer_name"))
+            .order_by("-balance")
+        )
+        return [row for row in rows if row["balance"] and row["balance"] > 0.01]
+
+
+class CustomerCreditDetailView(ViewDebtsMixin, View):
+    """customer_name comes from a query param (?customer=), not a URL path segment —
+    mirrors debts:invoice_preview, since a free-text customer name could contain
+    characters (like /) that don't route cleanly as part of a path."""
+
+    template_name = "debts/customer_credit_detail.html"
+
+    def get(self, request):
+        customer_name = request.GET.get("customer", "")
+        entries = CustomerCredit.objects.filter(customer_name__iexact=customer_name).select_related("related_sale")
+        if not entries.exists():
+            raise Http404("No credit history for this customer.")
+        balance = entries.aggregate(total=Sum("amount"))["total"] or 0
+        return render(request, self.template_name, {
+            "customer_name": customer_name,
+            "entries": entries,
+            "balance": round(balance, 2),
+        })

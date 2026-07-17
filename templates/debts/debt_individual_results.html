@@ -32,6 +32,12 @@
                 <input type="checkbox" class="group-select-all rounded border-gray-300 dark:border-slate-600">
                 <span class="font-medium text-gray-900 dark:text-white">{{ group.customer_name }}</span>
                 <span class="text-xs text-gray-400 dark:text-slate-500">{{ group.sales|length }} debt{{ group.sales|length|pluralize }}</span>
+                {% if group.credit_balance %}
+                <a href="{% url 'debts:credit_detail' %}?customer={{ group.customer_name|urlencode }}" class="inline-flex items-center gap-1 hover:opacity-80">
+                    {% status_badge "Credit" "success" %}
+                    <span class="text-xs text-green-700 dark:text-green-300">{{ group.credit_balance|floatformat:2 }}</span>
+                </a>
+                {% endif %}
                 {% if group.latest_link %}
                 <a href="{% url 'mpesa:payment_link_detail' group.latest_link.pk %}" class="text-xs hover:opacity-80">
                     {% if group.latest_link.status == "paid" %}{% status_badge "Link: Paid" "success" %}

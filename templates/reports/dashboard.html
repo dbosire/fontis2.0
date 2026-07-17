@@ -153,6 +153,10 @@
                         {% status_badge "Cash" "success" %}
                     {% elif sale.status == 2 %}
                         {% status_badge "M-Pesa" "info" %}
+                    {% elif sale.status == 4 %}
+                        {% status_badge "Partially Paid" "warning" %}
+                    {% elif sale.status == 5 %}
+                        {% status_badge "Credit" "info" %}
                     {% else %}
                         {% status_badge "Unresolved" "danger" %}
                     {% endif %}

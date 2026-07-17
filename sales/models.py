@@ -12,13 +12,14 @@ class Sale(models.Model):
     WALK_IN, DELIVERY = 1, 2
     TYPE_CHOICES = [(WALK_IN, "Walk-In"), (DELIVERY, "For Delivery")]
 
-    UNPAID, CASH, MPESA, UNRESOLVED, PARTIAL = 0, 1, 2, 3, 4
+    UNPAID, CASH, MPESA, UNRESOLVED, PARTIAL, CREDIT = 0, 1, 2, 3, 4, 5
     STATUS_CHOICES = [
         (UNPAID, "Unpaid"),
         (CASH, "Paid (Cash)"),
         (MPESA, "Paid (M-Pesa)"),
         (UNRESOLVED, "Unresolved"),
         (PARTIAL, "Partially Paid"),
+        (CREDIT, "Paid (Credit)"),
     ]
 
     customer_name = models.TextField()
@@ -44,13 +45,13 @@ class Sale(models.Model):
 
     @property
     def amount_paid(self):
-        if self.status in (Sale.CASH, Sale.MPESA):
+        if self.status in (Sale.CASH, Sale.MPESA, Sale.CREDIT):
             return self.amount
         return round(sum(p.amount for p in self.debt_payments.all()), 2)
 
     @property
     def balance_due(self):
-        if self.status in (Sale.CASH, Sale.MPESA):
+        if self.status in (Sale.CASH, Sale.MPESA, Sale.CREDIT):
             return 0.0
         return round(self.amount - self.amount_paid, 2)
 

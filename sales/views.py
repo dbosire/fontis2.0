@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
@@ -9,6 +10,8 @@ from django.views.generic import ListView, DeleteView
 
 from core.mixins import ModulePermissionRequiredMixin
 from crm.services.loyalty import award_points_for_sale
+from debts.models import DebtPayment
+from debts.services import customer_credit_balance, record_debt_payment
 from finance.services import sync_journal_for_sale, void_journal_for_sale
 from inventory.services import apply_sale_item_stock_deltas, restock_for_deleted_sale
 from maintenance.models import JarType
@@ -25,6 +28,11 @@ class ViewSalesMixin(ModulePermissionRequiredMixin):
 class EditSalesMixin(ModulePermissionRequiredMixin):
     module_name = "sales"
     permission_level = "edit"
+
+
+# USE_TZ=False project-wide — naive local time only, matching every other app.
+def _today():
+    return datetime.now(ZoneInfo("Africa/Nairobi")).date()
 
 
 def _parse_date(value):
@@ -120,6 +128,7 @@ class SaleFormView(EditSalesMixin, View):
 
     def post(self, request, *args, **kwargs):
         sale = self.get_object()
+        is_create = sale is None
         old_items = {}
         if sale is not None:
             old_items = {
@@ -145,6 +154,20 @@ class SaleFormView(EditSalesMixin, View):
             apply_sale_item_stock_deltas(old_items, new_items, sale, user=request.user)
             award_points_for_sale(sale, user=request.user)
             sync_journal_for_sale(sale, user=request.user)
+
+            # A brand-new debt for a customer who already has credit (from an earlier
+            # overpayment or prepayment) auto-settles immediately — see
+            # debts/services.py::record_debt_payment's CREDIT handling. Scoped to
+            # creation only, not edits of an existing sale, so this never re-fires
+            # every time someone tweaks item quantities on an already-settled sale.
+            if is_create and sale.status == Sale.UNPAID:
+                available = customer_credit_balance(sale.customer_name)
+                if available > 0:
+                    record_debt_payment(
+                        sale, amount=min(available, sale.balance_due), payment_date=_today(),
+                        payment_method=DebtPayment.CREDIT,
+                        notes="Auto-applied from customer credit balance", user=request.user,
+                    )
 
             messages.success(request, "Sale saved.")
 

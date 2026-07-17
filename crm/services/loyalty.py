@@ -10,7 +10,7 @@ def award_points_for_sale(sale, user=None):
     """
     from sales.models import Sale
 
-    if sale.status not in (Sale.CASH, Sale.MPESA):
+    if sale.status not in (Sale.CASH, Sale.MPESA, Sale.CREDIT):
         return None
     if not sale.customer_name or sale.customer_name.strip().lower() == "guest":
         return None

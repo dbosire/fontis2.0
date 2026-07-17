@@ -47,7 +47,7 @@ class CommissionAccount(models.Model):
             return Sale.objects.none()
         return Sale.objects.filter(
             customer_name__iexact=self.customer.name.strip(),
-            status__in=[Sale.CASH, Sale.MPESA],
+            status__in=[Sale.CASH, Sale.MPESA, Sale.CREDIT],
             date_created__date__gte=start,
             date_created__date__lte=end,
         )

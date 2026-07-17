@@ -14,4 +14,7 @@ urlpatterns = [
     path("bulk-update/", views.DebtBulkUpdateStatusView.as_view(), name="bulk_update"),
     path("sale/<int:pk>/", views.DebtDetailView.as_view(), name="sale_detail"),
     path("sale/<int:pk>/pay/", views.DebtPaymentCreateView.as_view(), name="record_payment"),
+    path("prepayment/", views.PrepaymentCreateView.as_view(), name="prepayment_add"),
+    path("credit/", views.CustomerCreditListView.as_view(), name="credit_list"),
+    path("credit/detail/", views.CustomerCreditDetailView.as_view(), name="credit_detail"),
 ]
