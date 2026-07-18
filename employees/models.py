@@ -31,6 +31,7 @@ MODULE_CHOICES = [
     ("finance", "Finance"),
     ("purchasing", "Purchasing"),
     ("commissions", "Commissions"),
+    ("daily_reconciliation", "Daily Reconciliation"),
     ("system_info", "Settings"),
 ]
 

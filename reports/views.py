@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate, TruncMonth
 from django.views.generic import TemplateView
 
 from core.mixins import ModulePermissionRequiredMixin
+from debts.models import DebtPayment
 from expenses.models import Expense
 from finance.models import JournalEntry, JournalLine
 from inventory.models import RawMaterial, StockMovement
@@ -88,6 +89,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "total": today_sales.aggregate(total=Sum("amount"))["total"] or 0,
             "count": today_sales.count(),
         }
+
+        # 2b. Debts paid today — money collected today against a debt that originated
+        # on an EARLIER day (excludes same-day sales that got paid same-day, which are
+        # already counted above as ordinary Cash/M-Pesa sales, not "debts"). Credit
+        # payments are excluded — consuming existing credit isn't new money collected.
+        debts_paid_today = DebtPayment.objects.filter(payment_date=today).exclude(sale__date_created__date=today)
+        ctx["debts_paid_today_cash"] = (
+            debts_paid_today.filter(payment_method=DebtPayment.CASH).aggregate(total=Sum("amount"))["total"] or 0
+        )
+        ctx["debts_paid_today_mpesa"] = (
+            debts_paid_today.filter(payment_method=DebtPayment.MPESA).aggregate(total=Sum("amount"))["total"] or 0
+        )
 
         # 3a. Monthly summary — last 6 months of sales totals
         six_months_start = _months_before(month_start, 5)

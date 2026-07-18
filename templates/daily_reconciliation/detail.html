@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_title %}Reconciliation — {{ record.date|date:"d M Y" }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Reconciliation — {{ record.date|date:"d M Y" }}</h2>
+        <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">Back to History</a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Cash</p>
+            <dl class="text-sm space-y-1 mb-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Expected (sales + debts paid that day)</dt>
+                    <dd class="text-gray-900 dark:text-white">{{ summary.expected_cash|floatformat:2 }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Cash collected</dt>
+                    <dd class="text-gray-900 dark:text-white">{{ record.cash_collected|floatformat:2 }}</dd>
+                </div>
+            </dl>
+            <div class="pt-3 border-t border-gray-200 dark:border-slate-700">
+                <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Variance</p>
+                {% include "daily_reconciliation/_variance.html" with variance=summary.cash_variance %}
+            </div>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-3">M-Pesa</p>
+            <dl class="text-sm space-y-1 mb-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Previous day's balance</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.previous_balance is not None %}{{ summary.previous_balance|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Current balance</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.current_balance is not None %}{{ summary.current_balance|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Actual (balance movement)</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.actual_mpesa is not None %}{{ summary.actual_mpesa|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Expected (M-Pesa sales + debts paid)</dt>
+                    <dd class="text-gray-900 dark:text-white">{{ summary.expected_mpesa|floatformat:2 }}</dd>
+                </div>
+            </dl>
+            <div class="pt-3 border-t border-gray-200 dark:border-slate-700">
+                <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Variance</p>
+                {% include "daily_reconciliation/_variance.html" with variance=summary.mpesa_variance none_label="Till balance data unavailable" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <dl class="grid grid-cols-2 gap-3 text-sm">
+            <div><dt class="text-gray-500 dark:text-slate-400">Recorded by</dt><dd class="text-gray-900 dark:text-white">{{ record.recorded_by.get_full_name|default:"—" }}</dd></div>
+            <div><dt class="text-gray-500 dark:text-slate-400">Last updated</dt><dd class="text-gray-900 dark:text-white">{{ record.date_updated|date:"d M Y, H:i" }}</dd></div>
+        </dl>
+        {% if record.notes %}
+        <p class="text-sm text-gray-600 dark:text-slate-400 mt-4 pt-4 border-t border-gray-200 dark:border-slate-700">{{ record.notes }}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

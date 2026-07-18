@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "finance",
     "purchasing",
     "commissions",
+    "daily_reconciliation",
     "reports",
     "system_info",
     "ml_integration",

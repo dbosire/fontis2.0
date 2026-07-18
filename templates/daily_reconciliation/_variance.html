@@ -1,0 +1,13 @@
+{% comment %}Usage: {% include "daily_reconciliation/_variance.html" with variance=summary.cash_variance %}
+Optional none_label overrides the message shown when variance is None (default "Not entered yet"){% endcomment %}
+{% if variance is None %}
+<p class="text-lg font-semibold text-gray-400 dark:text-slate-500 mt-1">—</p>
+<p class="text-xs text-gray-400 dark:text-slate-500 mt-1">{{ none_label|default:"Not entered yet" }}</p>
+{% else %}
+<p class="text-lg font-semibold mt-1 {% if variance > 0.01 %}text-green-600 dark:text-green-400{% elif variance < -0.01 %}text-red-600 dark:text-red-400{% else %}text-gray-700 dark:text-slate-300{% endif %}">
+    {% if variance > 0 %}+{% endif %}{{ variance|floatformat:2 }}
+</p>
+<p class="text-xs mt-1 {% if variance > 0.01 %}text-green-600 dark:text-green-400{% elif variance < -0.01 %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-slate-400{% endif %}">
+    {% if variance > 0.01 %}Excess{% elif variance < -0.01 %}Deficit{% else %}Balanced{% endif %}
+</p>
+{% endif %}

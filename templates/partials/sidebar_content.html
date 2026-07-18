@@ -42,6 +42,10 @@
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'water_test' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "beaker" %} Lab Test
     </a>
+    <a href="{% url 'daily_reconciliation:today' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'daily_reconciliation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "arrow-path" %} Daily Reconciliation
+    </a>
 
     {# ---- Collapsible groups (multi-link sections) — collapsed by default, auto-open on the active section, instant show/hide (no CSS transition — see mobile sidebar note) ---- #}
     <div class="pt-2 mt-2 border-t border-slate-800" x-data="{ open: {% if app_name == 'debts' %}true{% else %}false{% endif %} }">

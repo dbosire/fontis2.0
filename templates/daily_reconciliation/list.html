@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block page_title %}Reconciliation History{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Reconciliation History</h2>
+    <a href="{% url 'daily_reconciliation:today' %}" class="text-sm text-blue-600 hover:underline">Today's Reconciliation</a>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Cash Collected</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Cash Variance</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">M-Pesa Variance</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Recorded By</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for record in records %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ record.date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ record.cash_collected|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-right font-medium {% if record.summary.cash_variance > 0.01 %}text-green-600 dark:text-green-400{% elif record.summary.cash_variance < -0.01 %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-slate-400{% endif %}">
+                    {% if record.summary.cash_variance > 0 %}+{% endif %}{{ record.summary.cash_variance|floatformat:2 }}
+                </td>
+                <td class="px-5 py-2 text-right font-medium {% if record.summary.mpesa_variance is None %}text-gray-400 dark:text-slate-500{% elif record.summary.mpesa_variance > 0.01 %}text-green-600 dark:text-green-400{% elif record.summary.mpesa_variance < -0.01 %}text-red-600 dark:text-red-400{% else %}text-gray-500 dark:text-slate-400{% endif %}">
+                    {% if record.summary.mpesa_variance is None %}—{% else %}{% if record.summary.mpesa_variance > 0 %}+{% endif %}{{ record.summary.mpesa_variance|floatformat:2 }}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ record.recorded_by.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-right"><a href="{% url 'daily_reconciliation:detail' record.pk %}" class="text-blue-600 hover:underline">Details</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No reconciliations recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

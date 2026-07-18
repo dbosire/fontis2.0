@@ -66,7 +66,7 @@
 
 <div class="mb-6">
     <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Today at a Glance</h2>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
             <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Water sold today</p>
             <p class="text-xl font-semibold text-cyan-600 mt-1">{{ today_water_liters|floatformat:1 }} L</p>
@@ -80,6 +80,16 @@
             <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Cash flow today</p>
             <p class="text-xl font-semibold {% if cash_flow_net < 0 %}text-red-600{% else %}text-green-600{% endif %} mt-1">KES {{ cash_flow_net|floatformat:2 }}</p>
             <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">In {{ cash_flow_in|floatformat:2 }} · Out {{ cash_flow_out|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Debts paid (Cash)</p>
+            <p class="text-xl font-semibold text-green-600 mt-1">{{ debts_paid_today_cash|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Old debts, not today's sales</p>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Debts paid (M-Pesa)</p>
+            <p class="text-xl font-semibold text-blue-600 mt-1">{{ debts_paid_today_mpesa|floatformat:2 }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Old debts, not today's sales</p>
         </div>
     </div>
 </div>

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block page_title %}Daily Reconciliation{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Daily Reconciliation — {{ today|date:"d M Y" }}</h2>
+        <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">History</a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Cash</p>
+            <dl class="text-sm space-y-1 mb-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Expected (sales + debts paid today)</dt>
+                    <dd class="text-gray-900 dark:text-white">{{ summary.expected_cash|floatformat:2 }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Cash collected</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.cash_collected is not None %}{{ summary.cash_collected|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+            </dl>
+            <div class="pt-3 border-t border-gray-200 dark:border-slate-700">
+                <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Variance</p>
+                {% include "daily_reconciliation/_variance.html" with variance=summary.cash_variance %}
+            </div>
+        </div>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white mb-3">M-Pesa</p>
+            <dl class="text-sm space-y-1 mb-3">
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Previous day's balance</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.previous_balance is not None %}{{ summary.previous_balance|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Current balance</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.current_balance is not None %}{{ summary.current_balance|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Actual (balance movement)</dt>
+                    <dd class="text-gray-900 dark:text-white">{% if summary.actual_mpesa is not None %}{{ summary.actual_mpesa|floatformat:2 }}{% else %}—{% endif %}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-gray-500 dark:text-slate-400">Expected (M-Pesa sales + debts paid)</dt>
+                    <dd class="text-gray-900 dark:text-white">{{ summary.expected_mpesa|floatformat:2 }}</dd>
+                </div>
+            </dl>
+            <div class="pt-3 border-t border-gray-200 dark:border-slate-700">
+                <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Variance</p>
+                {% include "daily_reconciliation/_variance.html" with variance=summary.mpesa_variance none_label="Till balance data unavailable" %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">{% if record %}Update{% else %}Record{% endif %} Today's Cash Count</h3>
+        <form method="post">
+            {% csrf_token %}
+            {% include "core/components/form_field.html" with field=form.cash_collected %}
+            <div class="mt-4">
+                {% include "core/components/form_field.html" with field=form.notes %}
+            </div>
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
