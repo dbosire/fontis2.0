@@ -2,6 +2,7 @@
 {% block page_title %}{% if object %}Edit{% else %}New{% endif %} Sale{% endblock %}
 {% block content %}
 {{ jar_type_prices|json_script:"jar-type-prices" }}
+{{ credit_balances|json_script:"credit-balances" }}
 <style>.formset-row input[name$="-DELETE"] { display: none; }</style>
 <div class="max-w-3xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{% if object %}Edit{% else %}New{% endif %} Sale</h2>
@@ -20,6 +21,7 @@
             {% include "core/components/form_field.html" with field=form.delivery_address %}
             {% include "core/components/form_field.html" with field=form.status %}
         </div>
+        <div id="credit-banner" class="hidden mb-4 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-2 text-sm text-green-700 dark:text-green-400"></div>
         {% include "core/components/form_field.html" with field=form.comments %}
 
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white mt-6 mb-2">Items</h3>
@@ -96,9 +98,39 @@
 <script>
 (function () {
     const jarTypePrices = JSON.parse(document.getElementById('jar-type-prices').textContent);
+    const creditBalances = JSON.parse(document.getElementById('credit-balances').textContent);
     const rowsContainer = document.getElementById('formset-rows');
     const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
     const grandTotalEl = document.getElementById('grand-total');
+    const customerInput = document.getElementById('id_customer_name');
+    const creditBanner = document.getElementById('credit-banner');
+    const statusSelect = document.getElementById('id_status');
+    const creditOption = statusSelect.querySelector('option[value="5"]');
+    const isCreate = {{ is_create|yesno:"true,false" }};
+
+    // The "Paid (Credit)" status only makes sense for a customer who actually has a
+    // credit balance — disable it otherwise so staff can't pick a status the server
+    // would just reject (see SaleFormView.post()'s record_debt_payment call, the
+    // real source of truth). Only reacts to the customer field changing, never runs
+    // on page load, so an edit page's already-set "Paid (Credit)" sale is never
+    // retroactively disabled just because that credit has since been spent settling
+    // this very sale.
+    function updateCreditUI() {
+        const balance = creditBalances[customerInput.value.trim().toLowerCase()];
+        creditOption.disabled = !balance;
+        if (balance && isCreate) {
+            creditBanner.textContent = customerInput.value.trim() + ' has KES ' + balance.toFixed(2) +
+                ' in credit available — it will be applied automatically when this sale is saved.';
+            creditBanner.classList.remove('hidden');
+        } else {
+            creditBanner.classList.add('hidden');
+        }
+        if (!balance && statusSelect.value === '5') {
+            statusSelect.value = '0';
+        }
+    }
+    customerInput.addEventListener('input', updateCreditUI);
+    customerInput.addEventListener('change', updateCreditUI);
 
     function fieldIn(row, suffix) {
         return row.querySelector('[name$="' + suffix + '"]');

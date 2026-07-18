@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.functions import Lower
 
 from crm.services.loyalty import award_points_for_sale
 from finance.services import sync_journal_for_sale
@@ -15,6 +16,18 @@ def customer_credit_balance(customer_name):
         or 0,
         2,
     )
+
+
+def all_customer_credit_balances():
+    """Every customer with a positive credit balance, keyed by lowercased name —
+    for client-side lookups (e.g. the Sale form's "this customer has credit" banner)
+    where per-keystroke server round-trips aren't worth it."""
+    rows = (
+        CustomerCredit.objects.annotate(lower_name=Lower("customer_name"))
+        .values("lower_name")
+        .annotate(balance=Sum("amount"))
+    )
+    return {row["lower_name"]: round(row["balance"], 2) for row in rows if row["balance"] and row["balance"] > 0.01}
 
 
 @transaction.atomic

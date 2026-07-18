@@ -11,7 +11,7 @@ from django.views.generic import ListView, DeleteView
 from core.mixins import ModulePermissionRequiredMixin
 from crm.services.loyalty import award_points_for_sale
 from debts.models import DebtPayment
-from debts.services import customer_credit_balance, record_debt_payment
+from debts.services import all_customer_credit_balances, customer_credit_balance, record_debt_payment
 from finance.services import sync_journal_for_sale, void_journal_for_sale
 from inventory.services import apply_sale_item_stock_deltas, restock_for_deleted_sale
 from maintenance.models import JarType
@@ -105,7 +105,7 @@ class SaleFormView(EditSalesMixin, View):
         pk = self.kwargs.get("pk")
         return get_object_or_404(Sale, pk=pk) if pk else None
 
-    def get_extra_context(self):
+    def get_extra_context(self, *, is_create):
         jar_type_prices = {str(pk): price for pk, price in JarType.objects.values_list("pk", "pricing")}
         customer_names = list(
             Sale.objects.exclude(customer_name="Guest")
@@ -116,6 +116,11 @@ class SaleFormView(EditSalesMixin, View):
         return {
             "jar_type_prices": jar_type_prices,
             "customer_names": customer_names,
+            # Drives both the "this customer has credit" banner and gating the
+            # "Paid (Credit)" status option so it can't be picked for a customer with
+            # no balance — see sale_form.html's updateCreditUI().
+            "credit_balances": all_customer_credit_balances(),
+            "is_create": is_create,
         }
 
     def get(self, request, *args, **kwargs):
@@ -123,7 +128,7 @@ class SaleFormView(EditSalesMixin, View):
         initial = {"customer_name": "Guest"} if sale is None else None
         form = SaleForm(instance=sale, initial=initial)
         formset = SaleItemFormSet(instance=sale)
-        ctx = {"form": form, "formset": formset, "object": sale, **self.get_extra_context()}
+        ctx = {"form": form, "formset": formset, "object": sale, **self.get_extra_context(is_create=sale is None)}
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
@@ -141,6 +146,15 @@ class SaleFormView(EditSalesMixin, View):
 
         if form.is_valid() and formset.is_valid():
             sale = form.save(commit=False)
+            # Staff picking "Paid (Credit)" directly on this form is only a status
+            # label, not a ledger entry — routing it through record_debt_payment below
+            # (same call the auto-apply hook uses) is what actually validates the
+            # customer has enough credit and deducts it from CustomerCredit. Hold the
+            # real status back until that succeeds, so a bad selection can't silently
+            # mark a sale "Credit" with nothing backing it.
+            requested_credit = sale.status == Sale.CREDIT
+            if requested_credit:
+                sale.status = Sale.UNPAID
             sale.save()
             formset.instance = sale
             formset.save()
@@ -155,12 +169,24 @@ class SaleFormView(EditSalesMixin, View):
             award_points_for_sale(sale, user=request.user)
             sync_journal_for_sale(sale, user=request.user)
 
+            if requested_credit:
+                try:
+                    record_debt_payment(
+                        sale, amount=sale.balance_due, payment_date=_today(),
+                        payment_method=DebtPayment.CREDIT,
+                        notes="Marked as Credit payment at entry", user=request.user,
+                    )
+                except ValueError as exc:
+                    messages.error(request, f"{exc} Sale saved as Unpaid instead.")
             # A brand-new debt for a customer who already has credit (from an earlier
             # overpayment or prepayment) auto-settles immediately — see
             # debts/services.py::record_debt_payment's CREDIT handling. Scoped to
             # creation only, not edits of an existing sale, so this never re-fires
             # every time someone tweaks item quantities on an already-settled sale.
-            if is_create and sale.status == Sale.UNPAID:
+            # Skipped when Credit was explicitly requested above — that already tried
+            # (and, on failure, already explained why), so this wouldn't do anything
+            # but silently apply a partial amount after a "no credit" error.
+            elif is_create and sale.status == Sale.UNPAID:
                 available = customer_credit_balance(sale.customer_name)
                 if available > 0:
                     record_debt_payment(
@@ -176,7 +202,7 @@ class SaleFormView(EditSalesMixin, View):
                 return redirect(reverse("debts:individual"))
             return redirect(reverse("sales:list"))
 
-        ctx = {"form": form, "formset": formset, "object": sale, **self.get_extra_context()}
+        ctx = {"form": form, "formset": formset, "object": sale, **self.get_extra_context(is_create=is_create)}
         return render(request, self.template_name, ctx)
 
 
