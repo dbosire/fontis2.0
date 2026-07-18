@@ -1,8 +1,14 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import httpx
 
 from sales.models import Sale
+
+
+# USE_TZ=False project-wide — naive local time only, matching every other app.
+def _today():
+    return datetime.now(ZoneInfo("Africa/Nairobi")).date()
 
 
 class MLClient:
@@ -43,24 +49,47 @@ def _predict_next(known_dates):
     return known_dates[-1] + timedelta(days=avg_interval), avg_interval
 
 
+def _categorize(next_refill_date, predicted_days_interval, today):
+    """Classifies a customer relative to their OWN typical order rhythm, not a fixed
+    day count — this business has customers who reorder every 2 days sitting right
+    next to ones who reorder every 8 months, so a fixed "60 days = churned" threshold
+    would be meaningless for either end of that range. `ratio` is how many of the
+    customer's own predicted intervals have elapsed since their predicted return
+    date: <0 hasn't reached it yet, 0-1 is on schedule, 1-2 missed one cycle, 2+
+    missed two or more — very likely lost."""
+    ratio = (today - next_refill_date).days / predicted_days_interval
+    if ratio >= 2:
+        return "Churned", "danger"
+    if ratio >= 1:
+        return "Overdue", "warning"
+    if ratio >= 0:
+        return "Due Now", "success"
+    return "Upcoming", "info"
+
+
 def compute_v1_predictions():
     """v1 predictor — a statistical baseline computed directly from this app's own
     Sale history, no external ML service involved. For every customer with at least
     two distinct order dates, predicts their next order date as their last order
-    date plus the average number of days between their past orders.
+    date plus the average number of days between their past orders, and classifies
+    them (see _categorize()) — including whether they look churned.
 
     Every sale counts regardless of status — a placed order is the recency/frequency
     signal here, not whether it was ultimately paid."""
+    today = _today()
     predictions = []
     for name, dates in _order_dates_by_customer().items():
         if len(dates) < 2:
             continue
         next_date, avg_interval = _predict_next(dates)
+        category, category_tone = _categorize(next_date, avg_interval, today)
         predictions.append({
             "customer_name": name,
             "last_refill_date": dates[-1],
             "predicted_days_interval": avg_interval,
             "next_refill_date": next_date,
+            "category": category,
+            "category_tone": category_tone,
         })
 
     predictions.sort(key=lambda p: p["next_refill_date"])
