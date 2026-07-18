@@ -18,7 +18,7 @@ from django.views.generic import ListView
 from core.exports import build_xlsx, render_pdf
 from core.mixins import ModulePermissionRequiredMixin
 from mpesa.models import PaymentLink
-from mpesa.services.daraja import MPESA_SHORTCODE
+from mpesa.services.daraja import MPESA_TILL_NUMBER
 from sales.models import Sale
 from system_info.services import get_settings_dict
 
@@ -215,7 +215,7 @@ def _invoice_context(request, customer):
         "customer": customer,
         "sales": sales,
         "total": total,
-        "mpesa_till_number": MPESA_SHORTCODE,
+        "mpesa_till_number": MPESA_TILL_NUMBER,
         "payment_link": payment_link,
         "pay_url": pay_url,
         "invoice_number": f"FS-INV-{min(sale_ids):06d}" if sale_ids else "FS-INV-000000",

@@ -12,7 +12,15 @@ MPESA_BASE_URL = (
 )
 MPESA_CONSUMER_KEY = config("MPESA_CONSUMER_KEY", default="")
 MPESA_CONSUMER_SECRET = config("MPESA_CONSUMER_SECRET", default="")
+# The shortcode identifying the app/organization to Daraja — used for BusinessShortCode
+# and the STK password. Not necessarily the till customers actually pay into; see
+# MPESA_TILL_NUMBER below for that.
 MPESA_SHORTCODE = config("MPESA_SHORTCODE", default="")
+# The actual Buy Goods till customers pay — used as PartyB in the STK push request and
+# shown to customers as the Till Number (invoice "How to Pay", the public pay page).
+# Kept separate from MPESA_SHORTCODE because Daraja lets a till be linked under an
+# organization shortcode different from the till number itself.
+MPESA_TILL_NUMBER = config("MPESA_TILL_NUMBER", default="")
 MPESA_PASSKEY = config("MPESA_PASSKEY", default="")
 MPESA_CALLBACK_BASE_URL = config("MPESA_CALLBACK_BASE_URL", default="")
 
@@ -24,7 +32,7 @@ class DarajaError(Exception):
 
 
 def is_configured():
-    return bool(MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET and MPESA_SHORTCODE and MPESA_PASSKEY)
+    return bool(MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET and MPESA_SHORTCODE and MPESA_TILL_NUMBER and MPESA_PASSKEY)
 
 
 def normalize_phone_number(raw):
@@ -92,7 +100,7 @@ def initiate_stk_push(phone_number, amount, account_reference, description="Paym
             "TransactionType": "CustomerBuyGoodsOnline",
             "Amount": int(round(amount)),
             "PartyA": phone_number,
-            "PartyB": MPESA_SHORTCODE,
+            "PartyB": MPESA_TILL_NUMBER,
             "PhoneNumber": phone_number,
             "CallBackURL": f"{MPESA_CALLBACK_BASE_URL}/pay/callback/stk/",
             "AccountReference": account_reference[:12],

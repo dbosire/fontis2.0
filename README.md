@@ -27,7 +27,7 @@ DB_NAME	fontis_springs (the real DB — not _staging)
 DB_USER / DB_PASSWORD	Production DB credentials, ideally a dedicated app user rather than root
 EMAIL_BACKEND	Switch off the console backend to django.core.mail.backends.smtp.EmailBackend, and fill in EMAIL_HOST / EMAIL_HOST_USER / EMAIL_HOST_PASSWORD — CRM email is currently just printing to console
 MPESA_ENV	production once you have live Daraja credentials (currently sandbox)
-MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET / MPESA_SHORTCODE / MPESA_PASSKEY	Live values from the Daraja production app — MPESA_SHORTCODE is currently blank, must be set
+MPESA_CONSUMER_KEY / MPESA_CONSUMER_SECRET / MPESA_SHORTCODE / MPESA_TILL_NUMBER / MPESA_PASSKEY	Live values from the Daraja production app. MPESA_SHORTCODE identifies the org to Daraja (BusinessShortCode); MPESA_TILL_NUMBER is the actual Buy Goods till customers pay (PartyB, shown as the Till Number) — both currently blank, must be set
 MPESA_CALLBACK_BASE_URL	The real public HTTPS URL Daraja will call back to, e.g. https://app.fontissprings.co.ke — must be HTTPS, Daraja rejects plain HTTP callbacks in production
 SECURE_SSL_REDIRECT, SESSION_COOKIE_SECURE, CSRF_COOKIE_SECURE	True, once a reverse proxy terminating TLS is in front of the app (see §4)
 SECURE_HSTS_SECONDS	e.g. 31536000 once HTTPS is confirmed working end-to-end — don't set this before TLS is live, it can lock out plain-HTTP access

@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from .models import PaymentLink, STKPushAttempt
-from .services.daraja import DarajaError, MPESA_SHORTCODE, initiate_stk_push, normalize_phone_number
+from .services.daraja import DarajaError, MPESA_TILL_NUMBER, initiate_stk_push, normalize_phone_number
 from .services.reconciliation import handle_c2b_confirmation, handle_stk_callback
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class PayView(View):
         if link.status in (PaymentLink.CANCELLED, PaymentLink.EXPIRED) or link.is_expired:
             return render(request, self.template_name, {"invalid": True})
         return render(request, self.template_name, {
-            "link": link, "phone_prefill": link.phone_number, "mpesa_till_number": MPESA_SHORTCODE,
+            "link": link, "phone_prefill": link.phone_number, "mpesa_till_number": MPESA_TILL_NUMBER,
         })
 
 
