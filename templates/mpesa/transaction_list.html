@@ -15,6 +15,7 @@
                 <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
                 <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
                 <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Bill Ref</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Org Balance</th>
                 <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Allocated</th>
                 <th class="px-5 py-2"></th>
             </tr>
@@ -28,6 +29,7 @@
                 <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.full_name }}</td>
                 <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ txn.TransAmount|floatformat:2 }}</td>
                 <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.BillRefNumber|default:"—" }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ txn.OrgAccountBalance|default:"—" }}</td>
                 <td class="px-5 py-2">
                     {% if txn.allocated_amount >= txn.TransAmount %}{% status_badge "Fully allocated" "success" %}
                     {% elif txn.allocated_amount > 0 %}
@@ -43,7 +45,7 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="8" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No transactions yet.</td></tr>
+            <tr><td colspan="9" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No transactions yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
