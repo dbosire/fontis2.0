@@ -22,6 +22,10 @@
             {% include "core/components/form_field.html" with field=form.status %}
         </div>
         <div id="credit-banner" class="hidden mb-4 rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-4 py-2 text-sm text-green-700 dark:text-green-400"></div>
+        <div id="partial-payment-fields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+            {% include "core/components/form_field.html" with field=form.amount_paid_now %}
+            {% include "core/components/form_field.html" with field=form.payment_method_now %}
+        </div>
         {% include "core/components/form_field.html" with field=form.comments %}
 
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white mt-6 mb-2">Items</h3>
@@ -131,6 +135,19 @@
     }
     customerInput.addEventListener('input', updateCreditUI);
     customerInput.addEventListener('change', updateCreditUI);
+
+    // Show the amount-paid/payment-method fields whenever "Partially Paid" is
+    // selected — see SaleFormView.post()'s requested_partial handling, which records
+    // that amount as a real DebtPayment so the remaining balance is tracked as a
+    // debt instead of the status label sitting there with nothing behind it. Runs on
+    // load too (unlike the credit gating above) so a validation-error re-render or an
+    // edit page that's already Partial shows the fields immediately.
+    const partialFields = document.getElementById('partial-payment-fields');
+    function updatePartialFieldsVisibility() {
+        partialFields.classList.toggle('hidden', statusSelect.value !== '4');
+    }
+    statusSelect.addEventListener('change', updatePartialFieldsVisibility);
+    updatePartialFieldsVisibility();
 
     function fieldIn(row, suffix) {
         return row.querySelector('[name$="' + suffix + '"]');

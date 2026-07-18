@@ -134,6 +134,7 @@ class SaleFormView(EditSalesMixin, View):
     def post(self, request, *args, **kwargs):
         sale = self.get_object()
         is_create = sale is None
+        old_status = sale.status if sale else None
         old_items = {}
         if sale is not None:
             old_items = {
@@ -146,14 +147,21 @@ class SaleFormView(EditSalesMixin, View):
 
         if form.is_valid() and formset.is_valid():
             sale = form.save(commit=False)
-            # Staff picking "Paid (Credit)" directly on this form is only a status
-            # label, not a ledger entry — routing it through record_debt_payment below
-            # (same call the auto-apply hook uses) is what actually validates the
-            # customer has enough credit and deducts it from CustomerCredit. Hold the
-            # real status back until that succeeds, so a bad selection can't silently
-            # mark a sale "Credit" with nothing backing it.
-            requested_credit = sale.status == Sale.CREDIT
-            if requested_credit:
+            # Staff picking "Paid (Credit)"/"Partially Paid" directly on this form is
+            # only a status label, not a ledger entry on its own — routing it through
+            # record_debt_payment below is what actually creates the DebtPayment and
+            # (for Credit) validates + deducts CustomerCredit. Hold the real status
+            # back until that succeeds, so a bad selection can't silently mark a sale
+            # settled/partial with nothing backing it.
+            #
+            # Gated on old_status so this only fires when the status is newly being
+            # set this way — not on every subsequent edit of an already-Credit or
+            # already-Partial sale (e.g. tweaking item quantities), which would
+            # otherwise try to record a second payment against a balance that's
+            # already fully or partially covered by the first one.
+            requested_credit = sale.status == Sale.CREDIT and old_status != Sale.CREDIT
+            requested_partial = sale.status == Sale.PARTIAL and old_status != Sale.PARTIAL
+            if requested_credit or requested_partial:
                 sale.status = Sale.UNPAID
             sale.save()
             formset.instance = sale
@@ -178,6 +186,17 @@ class SaleFormView(EditSalesMixin, View):
                     )
                 except ValueError as exc:
                     messages.error(request, f"{exc} Sale saved as Unpaid instead.")
+            elif requested_partial:
+                amount_paid_now = form.cleaned_data.get("amount_paid_now")
+                if amount_paid_now:
+                    record_debt_payment(
+                        sale, amount=amount_paid_now, payment_date=_today(),
+                        payment_method=form.cleaned_data.get("payment_method_now") or DebtPayment.CASH,
+                        notes="Partial payment recorded at entry", user=request.user,
+                    )
+                # else: form.clean() already requires amount_paid_now whenever status
+                # is newly Partial, so this shouldn't be reachable — sale is left
+                # Unpaid rather than a bare, unbacked "Partially Paid" label.
             # A brand-new debt for a customer who already has credit (from an earlier
             # overpayment or prepayment) auto-settles immediately — see
             # debts/services.py::record_debt_payment's CREDIT handling. Scoped to
