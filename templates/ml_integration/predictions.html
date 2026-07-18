@@ -1,7 +1,31 @@
 {% extends "base.html" %}
 {% block page_title %}ML Predictor {{ version_label }}{% endblock %}
 {% block content %}
-<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Refill Predictions ({{ version_label }})</h2>
+<h2 class="text-lg font-semibold text-gray-900 dark:text-white {% if version_label == 'v1' %}mb-1{% else %}mb-4{% endif %}">Refill Predictions ({{ version_label }})</h2>
+{% if version_label == "v1" %}
+<p class="text-xs text-gray-500 dark:text-slate-400 mb-4">Computed from this app's sales history — each customer's last order date plus the average number of days between their past orders.</p>
+{% if model_score %}
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5 mb-6">
+    <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">Model Score — backtested against orders that already happened</p>
+    <div class="grid grid-cols-3 gap-4">
+        <div>
+            <p class="text-2xl font-semibold text-green-600">{{ model_score.accuracy_within_3_days_pct }}%</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Predicted within 3 days</p>
+        </div>
+        <div>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ model_score.mean_absolute_error_days }} days</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Average error</p>
+        </div>
+        <div>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ model_score.sample_count }}</p>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">Past orders tested against</p>
+        </div>
+    </div>
+</div>
+{% else %}
+<p class="text-xs text-gray-400 dark:text-slate-500 mb-6">Not enough order history yet to score the model — need at least one customer with 3+ orders.</p>
+{% endif %}
+{% endif %}
 
 {% if error %}
 <div class="rounded-md bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-sm px-4 py-3">
