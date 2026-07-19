@@ -49,22 +49,31 @@ def _predict_next(known_dates):
     return known_dates[-1] + timedelta(days=avg_interval), avg_interval
 
 
-def _categorize(next_refill_date, predicted_days_interval, today):
-    """Classifies a customer relative to their OWN typical order rhythm, not a fixed
-    day count — this business has customers who reorder every 2 days sitting right
-    next to ones who reorder every 8 months, so a fixed "60 days = churned" threshold
-    would be meaningless for either end of that range. `ratio` is how many of the
-    customer's own predicted intervals have elapsed since their predicted return
-    date: <0 hasn't reached it yet, 0-1 is on schedule, 1-2 missed one cycle, 2+
-    missed two or more — very likely lost."""
-    ratio = (today - next_refill_date).days / predicted_days_interval
-    if ratio >= 2:
-        return "Churned", "danger"
-    if ratio >= 1:
-        return "Overdue", "warning"
-    if ratio >= 0:
+CHURN_THRESHOLD_DAYS = 10
+
+
+def _categorize(days_until_next):
+    """Classifies a customer by how many days have passed since (negative) or remain
+    until (positive) their predicted next order date. Churned is a fixed threshold —
+    10 or more days past the predicted date — per explicit instruction, not scaled to
+    each customer's own interval. Inclusive: exactly 10 days overdue already counts as
+    "10 days have passed," so it's Churned, not still Overdue."""
+    if days_until_next > 0:
+        return "Upcoming", "info"
+    if days_until_next == 0:
         return "Due Now", "success"
-    return "Upcoming", "info"
+    if days_until_next > -CHURN_THRESHOLD_DAYS:
+        return "Overdue", "warning"
+    return "Churned", "danger"
+
+
+def _days_status(days_until_next):
+    if days_until_next > 0:
+        return f"{days_until_next} day{'s' if days_until_next != 1 else ''} remaining"
+    if days_until_next == 0:
+        return "Due today"
+    overdue = -days_until_next
+    return f"{overdue} day{'s' if overdue != 1 else ''} overdue"
 
 
 def compute_v1_predictions():
@@ -72,7 +81,8 @@ def compute_v1_predictions():
     Sale history, no external ML service involved. For every customer with at least
     two distinct order dates, predicts their next order date as their last order
     date plus the average number of days between their past orders, and classifies
-    them (see _categorize()) — including whether they look churned.
+    them by how many days have passed since that predicted date (see _categorize())
+    — including whether they look churned (10+ days overdue).
 
     Every sale counts regardless of status — a placed order is the recency/frequency
     signal here, not whether it was ultimately paid."""
@@ -82,12 +92,15 @@ def compute_v1_predictions():
         if len(dates) < 2:
             continue
         next_date, avg_interval = _predict_next(dates)
-        category, category_tone = _categorize(next_date, avg_interval, today)
+        days_until_next = (next_date - today).days
+        category, category_tone = _categorize(days_until_next)
         predictions.append({
             "customer_name": name,
             "last_refill_date": dates[-1],
             "predicted_days_interval": avg_interval,
             "next_refill_date": next_date,
+            "days_until_next": days_until_next,
+            "days_status": _days_status(days_until_next),
             "category": category,
             "category_tone": category_tone,
         })

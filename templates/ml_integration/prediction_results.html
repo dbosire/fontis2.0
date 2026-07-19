@@ -1,0 +1,48 @@
+{% load ui %}
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Last Refill</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Predicted Interval (days)</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Next Refill</th>
+                {% if has_category %}<th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Days Until Next</th>{% endif %}
+                {% if has_category %}<th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for p in predictions %}
+            <tr>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ p.customer_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.last_refill_date }}</td>
+                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ p.predicted_days_interval }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.next_refill_date }}</td>
+                {% if has_category %}
+                <td class="px-5 py-2 {% if p.category_tone == 'danger' %}text-red-600 dark:text-red-400{% elif p.category_tone == 'warning' %}text-amber-600 dark:text-amber-400{% elif p.category_tone == 'success' %}text-green-600 dark:text-green-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">{{ p.days_status }}</td>
+                {% endif %}
+                {% if has_category %}<td class="px-5 py-2">{% status_badge p.category p.category_tone %}</td>{% endif %}
+            </tr>
+            {% empty %}
+            <tr><td colspan="{% if has_category %}6{% else %}4{% endif %}" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No predictions match your search.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-get="{% url list_url_name %}?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-target="#ml-results" hx-push-url="true"
+           class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>
+    {% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-get="{% url list_url_name %}?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-target="#ml-results" hx-push-url="true"
+           class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>
+    {% endif %}
+</div>
+{% endif %}
