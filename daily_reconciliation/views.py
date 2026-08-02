@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 from django.contrib import messages
@@ -28,49 +28,60 @@ def _today():
     return datetime.now(ZoneInfo("Africa/Nairobi")).date()
 
 
-class TodayReconciliationView(EditReconciliationMixin, View):
-    """The daily entry point — enter (or update) today's cash count and see the
-    computed expected/actual totals and variances immediately."""
+class ReconciliationEntryView(EditReconciliationMixin, View):
+    """The cash-entry point — defaults to today via /reconciliation/, but any date
+    can be entered or corrected via ?date=YYYY-MM-DD, e.g. to backfill a day staff
+    forgot to record. Future dates are rejected outright: there's no cash to count
+    for a day that hasn't happened yet."""
 
     template_name = "daily_reconciliation/today.html"
 
-    def get(self, request):
-        today = _today()
-        record = DailyReconciliation.objects.filter(date=today).first()
-        form = DailyReconciliationForm(instance=record)
+    def _target_date(self, request):
+        raw = request.GET.get("date") or request.POST.get("date")
+        if raw:
+            try:
+                return date.fromisoformat(raw)
+            except ValueError:
+                pass
+        return _today()
+
+    def _render(self, request, target, form=None):
+        record = DailyReconciliation.objects.filter(date=target).first()
         ctx = {
-            "form": form,
+            "form": form or DailyReconciliationForm(instance=record),
             "record": record,
-            "today": today,
-            "summary": summary_for(today, record.cash_collected if record else None),
+            "target_date": target,
+            "is_today": target == _today(),
+            "max_date": _today(),
+            "summary": summary_for(target, record.cash_collected if record else None),
             "deposit_candidates": candidate_deposit_transactions(record) if record else [],
         }
         return render(request, self.template_name, ctx)
 
+    def get(self, request):
+        return self._render(request, self._target_date(request))
+
     def post(self, request):
-        today = _today()
-        record = DailyReconciliation.objects.filter(date=today).first()
-        # The form's `date` field isn't rendered on this page (it's always "today" by
-        # definition here) — inject it so the ModelForm still validates cleanly.
+        target = self._target_date(request)
+        if target > _today():
+            messages.error(request, "Can't record cash for a future date.")
+            return redirect(f"{reverse('daily_reconciliation:today')}?date={target.isoformat()}")
+
+        record = DailyReconciliation.objects.filter(date=target).first()
+        # The form's `date` field isn't rendered on this page — inject the resolved
+        # target date so the ModelForm still validates cleanly.
         data = request.POST.copy()
-        data["date"] = today.isoformat()
+        data["date"] = target.isoformat()
         form = DailyReconciliationForm(data, instance=record)
         if form.is_valid():
             record = form.save(commit=False)
-            record.date = today
+            record.date = target
             record.recorded_by = request.user
             record.save()
-            messages.success(request, "Today's reconciliation saved.")
-            return redirect(reverse("daily_reconciliation:today"))
+            messages.success(request, f"Reconciliation for {target:%d %b %Y} saved.")
+            return redirect(f"{reverse('daily_reconciliation:today')}?date={target.isoformat()}")
 
-        ctx = {
-            "form": form,
-            "record": record,
-            "today": today,
-            "summary": summary_for(today, record.cash_collected if record else None),
-            "deposit_candidates": candidate_deposit_transactions(record) if record else [],
-        }
-        return render(request, self.template_name, ctx)
+        return self._render(request, target, form=form)
 
 
 class DailyReconciliationListView(ViewReconciliationMixin, ListView):

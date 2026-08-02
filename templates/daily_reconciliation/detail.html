@@ -4,7 +4,10 @@
 <div class="max-w-3xl">
     <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Reconciliation — {{ record.date|date:"d M Y" }}</h2>
-        <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">Back to History</a>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'daily_reconciliation:today' %}?date={{ record.date|date:'Y-m-d' }}" class="text-sm text-blue-600 hover:underline">Edit</a>
+            <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">Back to History</a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

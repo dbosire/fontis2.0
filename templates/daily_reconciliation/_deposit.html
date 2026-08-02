@@ -38,7 +38,7 @@ services.py matched by amount + timing.
             <form method="post" action="{% url 'daily_reconciliation:allocate_deposit' record.pk %}" class="flex items-center justify-between gap-3 border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2">
                 {% csrf_token %}
                 <input type="hidden" name="trans_id" value="{{ txn.TransID }}">
-                <input type="hidden" name="next" value="{{ request.path }}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <div class="text-sm">
                     <p class="text-gray-900 dark:text-white font-medium">{{ txn.TransID }} — {{ txn.TransAmount|floatformat:2 }}</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400">{{ txn.full_name|default:txn.MSISDN }} &bull; {{ txn.trans_datetime|date:"d M Y, H:i" }}</p>

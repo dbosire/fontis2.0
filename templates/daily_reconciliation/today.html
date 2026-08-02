@@ -2,9 +2,19 @@
 {% block page_title %}Daily Reconciliation{% endblock %}
 {% block content %}
 <div class="max-w-3xl">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Daily Reconciliation — {{ today|date:"d M Y" }}</h2>
-        <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">History</a>
+    <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Daily Reconciliation — {{ target_date|date:"d M Y" }}</h2>
+        <div class="flex items-center gap-3">
+            <form method="get">
+                <input type="date" name="date" value="{{ target_date|date:'Y-m-d' }}" max="{{ max_date|date:'Y-m-d' }}"
+                       onchange="this.form.submit()"
+                       class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </form>
+            {% if not is_today %}
+            <a href="{% url 'daily_reconciliation:today' %}" class="text-sm text-blue-600 hover:underline">Today</a>
+            {% endif %}
+            <a href="{% url 'daily_reconciliation:list' %}" class="text-sm text-blue-600 hover:underline">History</a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -12,7 +22,7 @@
             <p class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Cash</p>
             <dl class="text-sm space-y-1 mb-3">
                 <div class="flex justify-between">
-                    <dt class="text-gray-500 dark:text-slate-400">Expected (sales + debts paid today)</dt>
+                    <dt class="text-gray-500 dark:text-slate-400">Expected (sales + debts paid that day)</dt>
                     <dd class="text-gray-900 dark:text-white">{{ summary.expected_cash|floatformat:2 }}</dd>
                 </div>
                 <div class="flex justify-between">
@@ -57,7 +67,7 @@
     {% endif %}
 
     <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">{% if record %}Update{% else %}Record{% endif %} Today's Cash Count</h3>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">{% if record %}Update{% else %}Record{% endif %} Cash Count — {{ target_date|date:"d M Y" }}</h3>
         <form method="post">
             {% csrf_token %}
             {% include "core/components/form_field.html" with field=form.cash_collected %}
