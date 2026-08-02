@@ -121,12 +121,19 @@ def candidate_deposit_transactions(record):
 
 
 @transaction.atomic
-def allocate_cash_deposit(record, trans_id, *, user=None):
+def allocate_cash_deposit(record, trans_id, depositor_name, *, user=None):
     """Staff-confirmed match of an M-Pesa transaction to this day's cash deposit —
-    never automatic, always one of the candidates services.py itself surfaced."""
+    never automatic, always one of the candidates services.py itself surfaced.
+    `depositor_name` is who physically banked the cash, required and staff-supplied
+    (typically pre-filled from the transaction's own registered name, but editable —
+    see CashDepositAllocation's docstring)."""
     if hasattr(record, "deposit"):
         raise ValueError("This day's cash deposit has already been allocated.")
+    depositor_name = depositor_name.strip()
+    if not depositor_name:
+        raise ValueError("The depositor's name is required.")
     txn = MpesaTransaction.objects.get(TransID=trans_id)
     return CashDepositAllocation.objects.create(
-        reconciliation=record, trans_id=trans_id, amount=float(txn.TransAmount), allocated_by=user,
+        reconciliation=record, trans_id=trans_id, amount=float(txn.TransAmount),
+        depositor_name=depositor_name, allocated_by=user,
     )

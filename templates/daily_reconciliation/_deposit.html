@@ -21,6 +21,10 @@ services.py matched by amount + timing.
                 <dd class="text-gray-900 dark:text-white">{{ record.deposit.amount|floatformat:2 }}</dd>
             </div>
             <div class="flex justify-between">
+                <dt class="text-gray-500 dark:text-slate-400">Deposited by</dt>
+                <dd class="text-gray-900 dark:text-white font-medium">{{ record.deposit.depositor_name }}</dd>
+            </div>
+            <div class="flex justify-between">
                 <dt class="text-gray-500 dark:text-slate-400">Allocated by</dt>
                 <dd class="text-gray-900 dark:text-white">{{ record.deposit.allocated_by.get_full_name|default:"—" }}</dd>
             </div>
@@ -35,15 +39,19 @@ services.py matched by amount + timing.
         </p>
         <div class="space-y-2">
             {% for txn in deposit_candidates %}
-            <form method="post" action="{% url 'daily_reconciliation:allocate_deposit' record.pk %}" class="flex items-center justify-between gap-3 border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2">
+            <form method="post" action="{% url 'daily_reconciliation:allocate_deposit' record.pk %}" class="border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2">
                 {% csrf_token %}
                 <input type="hidden" name="trans_id" value="{{ txn.TransID }}">
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <div class="text-sm">
+                <div class="text-sm mb-2">
                     <p class="text-gray-900 dark:text-white font-medium">{{ txn.TransID }} — {{ txn.TransAmount|floatformat:2 }}</p>
-                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ txn.full_name|default:txn.MSISDN }} &bull; {{ txn.trans_datetime|date:"d M Y, H:i" }}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ txn.MSISDN }} &bull; {{ txn.trans_datetime|date:"d M Y, H:i" }}</p>
                 </div>
-                <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 shrink-0">Allocate</button>
+                <div class="flex items-center gap-2">
+                    <input type="text" name="depositor_name" value="{{ txn.full_name }}" required placeholder="Who deposited this?"
+                           class="flex-1 rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 shrink-0">Allocate</button>
+                </div>
             </form>
             {% endfor %}
         </div>

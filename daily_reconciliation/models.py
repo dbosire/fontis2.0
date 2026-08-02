@@ -39,11 +39,19 @@ class CashDepositAllocation(models.Model):
     table with no allocation columns of its own. `trans_id` is unique here since one
     M-Pesa transaction is one day's deposit, never split across days. Manual,
     staff-driven — staff confirm a candidate transaction surfaced by services.py's
-    amount+date matching, never an automatic/silent match."""
+    amount+date matching, never an automatic/silent match.
+
+    `depositor_name` is who physically banked the cash — not necessarily
+    `allocated_by`, which is whoever in the office confirmed the match afterward and
+    may be a different person entirely (e.g. an accountant reconciling days later).
+    Defaults to the M-Pesa transaction's own registered name in the UI but is a plain
+    editable field, since that name may just be a shared agent line rather than the
+    actual staff member who made the deposit."""
 
     reconciliation = models.OneToOneField(DailyReconciliation, on_delete=models.CASCADE, related_name="deposit")
     trans_id = models.CharField(max_length=255, unique=True)
     amount = models.FloatField()
+    depositor_name = models.CharField(max_length=150)
     allocated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
