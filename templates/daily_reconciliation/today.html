@@ -63,7 +63,7 @@
     </div>
 
     {% if record %}
-    {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance %}
+    {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance deposited_total=deposited_total %}
     {% endif %}
 
     <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">

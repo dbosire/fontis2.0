@@ -32,14 +32,17 @@ class DailyReconciliation(models.Model):
 
 
 class CashDepositAllocation(models.Model):
-    """Links the M-Pesa transaction that received a day's physical cash takings — an
-    agent depositing the day's till count into M-Pesa after close — to the
-    DailyReconciliation it settles. Keyed off TransID rather than an FK: like
-    mpesa.LegacyTransactionAllocation, mpesa_transactions is a managed=False legacy
-    table with no allocation columns of its own. `trans_id` is unique here since one
-    M-Pesa transaction is one day's deposit, never split across days. Manual,
-    staff-driven — staff confirm a candidate transaction surfaced by services.py's
-    amount+date matching, never an automatic/silent match.
+    """Links an M-Pesa transaction that received (some of) a day's physical cash
+    takings — an agent depositing the day's till count into M-Pesa after close — to
+    the DailyReconciliation it settles. A day can have several of these: cash is
+    often banked in more than one tranche, so this is a plain FK (many transactions
+    per day), not one-to-one. Keyed off TransID rather than an FK to the transaction
+    itself: like mpesa.LegacyTransactionAllocation, mpesa_transactions is a
+    managed=False legacy table with no allocation columns of its own. `trans_id`
+    stays globally unique here — one real M-Pesa transaction is one deposit event,
+    never split across days or double-counted. Manual, staff-driven — staff confirm
+    a candidate transaction surfaced by services.py's amount+date matching, never an
+    automatic/silent match.
 
     `depositor_name` is who physically banked the cash — not necessarily
     `allocated_by`, which is whoever in the office confirmed the match afterward and
@@ -48,7 +51,7 @@ class CashDepositAllocation(models.Model):
     editable field, since that name may just be a shared agent line rather than the
     actual staff member who made the deposit."""
 
-    reconciliation = models.OneToOneField(DailyReconciliation, on_delete=models.CASCADE, related_name="deposit")
+    reconciliation = models.ForeignKey(DailyReconciliation, on_delete=models.CASCADE, related_name="deposits")
     trans_id = models.CharField(max_length=255, unique=True)
     amount = models.FloatField()
     depositor_name = models.CharField(max_length=150)
@@ -56,6 +59,9 @@ class CashDepositAllocation(models.Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
     date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["date_created"]
 
     def __str__(self):
         return f"{self.trans_id} -> {self.reconciliation.date} (KES {self.amount:g})"

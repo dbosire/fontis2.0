@@ -15,6 +15,7 @@ from .services import (
     allocate_cash_deposit,
     candidate_deposit_transactions,
     deposit_variance,
+    deposited_total,
     search_deposit_transactions,
     summary_for,
     valid_deposit_transaction,
@@ -63,6 +64,7 @@ class ReconciliationEntryView(EditReconciliationMixin, View):
             "summary": summary_for(target, record.cash_collected if record else None),
             "deposit_candidates": candidate_deposit_transactions(record) if record else [],
             "deposit_variance": deposit_variance(record) if record else None,
+            "deposited_total": deposited_total(record) if record else 0,
         }
         return render(request, self.template_name, ctx)
 
@@ -115,6 +117,7 @@ class DailyReconciliationDetailView(ViewReconciliationMixin, DetailView):
         ctx["summary"] = summary_for(self.object.date, self.object.cash_collected)
         ctx["deposit_candidates"] = candidate_deposit_transactions(self.object)
         ctx["deposit_variance"] = deposit_variance(self.object)
+        ctx["deposited_total"] = deposited_total(self.object)
         return ctx
 
 

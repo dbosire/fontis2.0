@@ -110,19 +110,36 @@ def _excluded_deposit_trans_ids():
     )
 
 
+def deposited_total(record):
+    """Sum of every M-Pesa transaction allocated as (part of) this day's cash
+    deposit so far. 0 if none yet — distinct from deposit_variance()'s None, since
+    "nothing deposited" is a real, summable amount, not an undefined comparison."""
+    return record.deposits.aggregate(t=Sum("amount"))["t"] or 0.0
+
+
+def _remaining_to_deposit(record):
+    """What's still unaccounted for after existing deposits — what candidate
+    matching and the search preview compare against, so a day banked in several
+    tranches gets sensible suggestions for each remaining tranche rather than only
+    ever matching the full day's cash_collected."""
+    return record.cash_collected - deposited_total(record)
+
+
 def candidate_deposit_transactions(record):
-    """M-Pesa transactions that could be *this* day's cash-takings deposit: same
-    amount as `cash_collected`, timestamped on or after the reconciliation date (the
+    """M-Pesa transactions that could be the *next* tranche of this day's
+    cash-takings deposit: amount matching whatever's still remaining after any
+    deposits already allocated, timestamped on or after the reconciliation date (a
     deposit happens after the cash is counted, never before), and not already spoken
-    for. Returns [] once a deposit is already allocated for this record, or before
-    any cash count has been entered. Each result carries a `.variance` of 0 — these
-    are exact-amount matches by construction — so candidate and search rows can share
-    one template."""
-    if record.cash_collected is None or hasattr(record, "deposit"):
+    for. [] once nothing remains, or before any cash count has been entered. Each
+    result carries a `.variance` of 0 — these are exact matches against the
+    remaining balance by construction — so candidate and search rows can share one
+    template."""
+    if record.cash_collected is None:
         return []
+    remaining = _remaining_to_deposit(record)
     cutoff = record.date.strftime("%Y%m%d") + "000000"
     results = list(
-        MpesaTransaction.objects.filter(TransAmount=record.cash_collected, TransTime__gte=cutoff)
+        MpesaTransaction.objects.filter(TransAmount=remaining, TransTime__gte=cutoff)
         .exclude(TransID__in=_excluded_deposit_trans_ids())
         .order_by("TransTime")[:10]
     )
@@ -134,15 +151,16 @@ def candidate_deposit_transactions(record):
 def search_deposit_transactions(record, query):
     """Manual fallback for the Cash Deposit search box — unlike
     candidate_deposit_transactions() this is NOT constrained to an exact amount
-    match, since the actual deposit can legitimately differ from cash_collected (an
-    agent's fee, a rounding difference, a partial deposit). Each result's `.variance`
-    (deposit amount minus cash_collected) lets staff judge that difference before
-    allocating rather than being surprised after. Still constrained to on/after the
-    reconciliation date and not already allocated elsewhere; requires a non-blank
-    query — never lists the whole table."""
+    match, since a real deposit can legitimately differ from what's still owed (an
+    agent's fee, a rounding difference, another partial tranche). Each result's
+    `.variance` (its amount minus what's still remaining after existing deposits)
+    lets staff judge that difference before allocating rather than being surprised
+    after. Still constrained to on/after the reconciliation date and not already
+    allocated elsewhere; requires a non-blank query — never lists the whole table."""
     query = (query or "").strip()
-    if not query or record.cash_collected is None or hasattr(record, "deposit"):
+    if not query or record.cash_collected is None:
         return []
+    remaining = _remaining_to_deposit(record)
     cutoff = record.date.strftime("%Y%m%d") + "000000"
     filters = (
         Q(TransID__icontains=query) | Q(MSISDN__icontains=query) | Q(FirstName__icontains=query)
@@ -158,17 +176,18 @@ def search_deposit_transactions(record, query):
         .order_by("-TransTime")[:15]
     )
     for txn in results:
-        txn.variance = round(float(txn.TransAmount) - record.cash_collected, 2)
+        txn.variance = round(float(txn.TransAmount) - remaining, 2)
     return results
 
 
 def valid_deposit_transaction(record, trans_id):
-    """Whether `trans_id` is allocatable as this record's deposit right now — a real
-    M-Pesa transaction, timestamped on/after the reconciliation date, not already
-    claimed elsewhere. The POST handler validates against this rather than against
-    candidate_deposit_transactions() alone, since a transaction confirmed via search
-    is deliberately not amount-constrained and so isn't necessarily in that list."""
-    if record.cash_collected is None or hasattr(record, "deposit"):
+    """Whether `trans_id` is allocatable as (part of) this record's deposit right
+    now — a real M-Pesa transaction, timestamped on/after the reconciliation date,
+    not already claimed elsewhere. The POST handler validates against this rather
+    than against candidate_deposit_transactions() alone, since a transaction
+    confirmed via search is deliberately not amount-constrained and so isn't
+    necessarily in that list."""
+    if record.cash_collected is None:
         return None
     cutoff = record.date.strftime("%Y%m%d") + "000000"
     return (
@@ -179,24 +198,24 @@ def valid_deposit_transaction(record, trans_id):
 
 
 def deposit_variance(record):
-    """Excess/deficit between what was actually deposited (the allocated
-    transaction's own amount) and what cash_collected says should have been banked.
-    None until a deposit is allocated."""
-    if not hasattr(record, "deposit"):
+    """Excess/deficit between everything actually deposited so far (across every
+    allocated transaction) and what cash_collected says should have been banked in
+    total. None until at least one deposit is allocated — "nothing entered yet" is
+    not the same as a KES 0 shortfall."""
+    if not record.deposits.exists():
         return None
-    return round(record.deposit.amount - record.cash_collected, 2)
+    return round(deposited_total(record) - record.cash_collected, 2)
 
 
 @transaction.atomic
 def allocate_cash_deposit(record, trans_id, depositor_name, *, user=None):
-    """Staff-confirmed match of an M-Pesa transaction to this day's cash deposit —
-    never automatic. `trans_id` must already be validated via
-    valid_deposit_transaction() by the caller. `depositor_name` is who physically
-    banked the cash, required and staff-supplied (typically pre-filled from the
-    transaction's own registered name, but editable — see CashDepositAllocation's
-    docstring)."""
-    if hasattr(record, "deposit"):
-        raise ValueError("This day's cash deposit has already been allocated.")
+    """Staff-confirmed match of an M-Pesa transaction to (part of) this day's cash
+    deposit — never automatic, and never exclusive: a day can have several of these
+    if cash was banked in more than one tranche. `trans_id` must already be
+    validated via valid_deposit_transaction() by the caller. `depositor_name` is who
+    physically banked the cash, required and staff-supplied (typically pre-filled
+    from the transaction's own registered name, but editable — see
+    CashDepositAllocation's docstring)."""
     depositor_name = depositor_name.strip()
     if not depositor_name:
         raise ValueError("The depositor's name is required.")

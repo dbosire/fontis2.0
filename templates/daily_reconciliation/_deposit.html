@@ -1,46 +1,44 @@
 {% comment %}
-Usage: {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance %}
-Shows the M-Pesa transaction that received this day's physical cash takings, once
-staff have confirmed one; otherwise lets staff pick from candidate transactions
+Usage: {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance deposited_total=deposited_total %}
+Lists the M-Pesa transaction(s) that received this day's physical cash takings —
+a day can be banked in more than one tranche, so this is a list, not a single
+record — plus lets staff allocate more at any time via candidate transactions
 services.py matched by amount + timing, or search for any other transaction.
 {% endcomment %}
 {% load ui %}
 <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5 mb-6">
     <div class="flex items-center justify-between mb-3">
         <p class="text-sm font-semibold text-gray-900 dark:text-white">Cash Deposit</p>
-        {% if record.deposit %}{% status_badge "Deposited" "success" %}{% endif %}
+        {% if record.deposits.all %}{% status_badge "Deposited" "success" %}{% endif %}
     </div>
-    {% if record.deposit %}
-        <dl class="text-sm space-y-1">
-            <div class="flex justify-between">
-                <dt class="text-gray-500 dark:text-slate-400">M-Pesa Transaction</dt>
-                <dd class="text-gray-900 dark:text-white font-medium">{{ record.deposit.trans_id }}</dd>
+    {% if record.cash_collected is None %}
+        <p class="text-sm text-gray-400 dark:text-slate-500">Enter the cash count first.</p>
+    {% else %}
+        {% if record.deposits.all %}
+        <div class="space-y-2 mb-4">
+            {% for deposit in record.deposits.all %}
+            <div class="border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-gray-900 dark:text-white font-medium">{{ deposit.trans_id }} — {{ deposit.amount|floatformat:2 }}</p>
+                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ deposit.date_created|date:"d M Y, H:i" }}</p>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-slate-400">Deposited by {{ deposit.depositor_name }} &bull; Allocated by {{ deposit.allocated_by.get_full_name|default:"—" }}</p>
             </div>
-            <div class="flex justify-between">
-                <dt class="text-gray-500 dark:text-slate-400">Amount</dt>
-                <dd class="text-gray-900 dark:text-white">{{ record.deposit.amount|floatformat:2 }}</dd>
+            {% endfor %}
+        </div>
+        <div class="pt-3 mb-4 border-t border-gray-200 dark:border-slate-700">
+            <div class="flex justify-between text-sm mb-2">
+                <span class="text-gray-500 dark:text-slate-400">Total deposited</span>
+                <span class="text-gray-900 dark:text-white font-medium">{{ deposited_total|floatformat:2 }}</span>
             </div>
-            <div class="flex justify-between">
-                <dt class="text-gray-500 dark:text-slate-400">Deposited by</dt>
-                <dd class="text-gray-900 dark:text-white font-medium">{{ record.deposit.depositor_name }}</dd>
-            </div>
-            <div class="flex justify-between">
-                <dt class="text-gray-500 dark:text-slate-400">Allocated by</dt>
-                <dd class="text-gray-900 dark:text-white">{{ record.deposit.allocated_by.get_full_name|default:"—" }}</dd>
-            </div>
-            <div class="flex justify-between">
-                <dt class="text-gray-500 dark:text-slate-400">Allocated on</dt>
-                <dd class="text-gray-900 dark:text-white">{{ record.deposit.date_created|date:"d M Y, H:i" }}</dd>
-            </div>
-        </dl>
-        <div class="pt-3 mt-3 border-t border-gray-200 dark:border-slate-700">
-            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Deposit vs Cash Collected</p>
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Total Deposited vs Cash Collected</p>
             {% include "daily_reconciliation/_variance.html" with variance=deposit_variance %}
         </div>
-    {% elif record.cash_collected is not None %}
+        {% endif %}
+
         {% if deposit_candidates %}
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">
-            {{ deposit_candidates|length }} M-Pesa transaction{{ deposit_candidates|length|pluralize }} match{{ deposit_candidates|length|pluralize:"es," }} this day's cash count — confirm which one is the deposit.
+            {{ deposit_candidates|length }} M-Pesa transaction{{ deposit_candidates|length|pluralize }} match{{ deposit_candidates|length|pluralize:"es," }} what's still remaining — confirm which one to allocate.
         </p>
         <div class="space-y-2 mb-4">
             {% for txn in deposit_candidates %}
@@ -48,7 +46,8 @@ services.py matched by amount + timing, or search for any other transaction.
             {% endfor %}
         </div>
         {% endif %}
-        <div class="{% if deposit_candidates %}pt-4 border-t border-gray-200 dark:border-slate-700{% endif %}">
+
+        <div class="{% if record.deposits.all or deposit_candidates %}pt-4 border-t border-gray-200 dark:border-slate-700{% endif %}">
             <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Or search M-Pesa transactions</label>
             <input type="text" name="q" placeholder="Search by transaction ID, name, or phone…"
                    hx-get="{% url 'daily_reconciliation:search_deposit' record.pk %}?next={{ request.get_full_path|urlencode }}"
@@ -57,7 +56,5 @@ services.py matched by amount + timing, or search for any other transaction.
                    class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
             <div id="deposit-search-results" class="mt-2"></div>
         </div>
-    {% else %}
-        <p class="text-sm text-gray-400 dark:text-slate-500">Enter the cash count first.</p>
     {% endif %}
 </div>
