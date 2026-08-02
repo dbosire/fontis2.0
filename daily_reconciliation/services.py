@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from debts.models import DebtPayment
 from mpesa.models import LegacyTransactionAllocation, MpesaTransaction
@@ -100,33 +100,101 @@ def summary_for(date_, cash_collected=None):
     }
 
 
+def _excluded_deposit_trans_ids():
+    """TransIDs already spoken for — either as another day's cash deposit, or
+    (partially or fully) allocated to a customer debt via mpesa's legacy
+    allocation — so neither the auto-matched candidates nor search can double-offer
+    a transaction that's already been claimed elsewhere."""
+    return set(CashDepositAllocation.objects.values_list("trans_id", flat=True)) | set(
+        LegacyTransactionAllocation.objects.values_list("trans_id", flat=True)
+    )
+
+
 def candidate_deposit_transactions(record):
     """M-Pesa transactions that could be *this* day's cash-takings deposit: same
     amount as `cash_collected`, timestamped on or after the reconciliation date (the
     deposit happens after the cash is counted, never before), and not already spoken
-    for — either as another day's deposit, or (partially or fully) allocated to a
-    customer debt via mpesa's legacy allocation. Returns [] once a deposit is already
-    allocated for this record, or before any cash count has been entered."""
+    for. Returns [] once a deposit is already allocated for this record, or before
+    any cash count has been entered. Each result carries a `.variance` of 0 — these
+    are exact-amount matches by construction — so candidate and search rows can share
+    one template."""
     if record.cash_collected is None or hasattr(record, "deposit"):
         return []
     cutoff = record.date.strftime("%Y%m%d") + "000000"
-    excluded_trans_ids = set(CashDepositAllocation.objects.values_list("trans_id", flat=True)) | set(
-        LegacyTransactionAllocation.objects.values_list("trans_id", flat=True)
-    )
-    return list(
+    results = list(
         MpesaTransaction.objects.filter(TransAmount=record.cash_collected, TransTime__gte=cutoff)
-        .exclude(TransID__in=excluded_trans_ids)
+        .exclude(TransID__in=_excluded_deposit_trans_ids())
         .order_by("TransTime")[:10]
     )
+    for txn in results:
+        txn.variance = 0.0
+    return results
+
+
+def search_deposit_transactions(record, query):
+    """Manual fallback for the Cash Deposit search box — unlike
+    candidate_deposit_transactions() this is NOT constrained to an exact amount
+    match, since the actual deposit can legitimately differ from cash_collected (an
+    agent's fee, a rounding difference, a partial deposit). Each result's `.variance`
+    (deposit amount minus cash_collected) lets staff judge that difference before
+    allocating rather than being surprised after. Still constrained to on/after the
+    reconciliation date and not already allocated elsewhere; requires a non-blank
+    query — never lists the whole table."""
+    query = (query or "").strip()
+    if not query or record.cash_collected is None or hasattr(record, "deposit"):
+        return []
+    cutoff = record.date.strftime("%Y%m%d") + "000000"
+    filters = (
+        Q(TransID__icontains=query) | Q(MSISDN__icontains=query) | Q(FirstName__icontains=query)
+        | Q(MiddleName__icontains=query) | Q(LastName__icontains=query) | Q(BillRefNumber__icontains=query)
+    )
+    try:
+        filters |= Q(TransAmount=float(query))
+    except ValueError:
+        pass
+    results = list(
+        MpesaTransaction.objects.filter(filters, TransTime__gte=cutoff)
+        .exclude(TransID__in=_excluded_deposit_trans_ids())
+        .order_by("-TransTime")[:15]
+    )
+    for txn in results:
+        txn.variance = round(float(txn.TransAmount) - record.cash_collected, 2)
+    return results
+
+
+def valid_deposit_transaction(record, trans_id):
+    """Whether `trans_id` is allocatable as this record's deposit right now — a real
+    M-Pesa transaction, timestamped on/after the reconciliation date, not already
+    claimed elsewhere. The POST handler validates against this rather than against
+    candidate_deposit_transactions() alone, since a transaction confirmed via search
+    is deliberately not amount-constrained and so isn't necessarily in that list."""
+    if record.cash_collected is None or hasattr(record, "deposit"):
+        return None
+    cutoff = record.date.strftime("%Y%m%d") + "000000"
+    return (
+        MpesaTransaction.objects.filter(TransID=trans_id, TransTime__gte=cutoff)
+        .exclude(TransID__in=_excluded_deposit_trans_ids())
+        .first()
+    )
+
+
+def deposit_variance(record):
+    """Excess/deficit between what was actually deposited (the allocated
+    transaction's own amount) and what cash_collected says should have been banked.
+    None until a deposit is allocated."""
+    if not hasattr(record, "deposit"):
+        return None
+    return round(record.deposit.amount - record.cash_collected, 2)
 
 
 @transaction.atomic
 def allocate_cash_deposit(record, trans_id, depositor_name, *, user=None):
     """Staff-confirmed match of an M-Pesa transaction to this day's cash deposit —
-    never automatic, always one of the candidates services.py itself surfaced.
-    `depositor_name` is who physically banked the cash, required and staff-supplied
-    (typically pre-filled from the transaction's own registered name, but editable —
-    see CashDepositAllocation's docstring)."""
+    never automatic. `trans_id` must already be validated via
+    valid_deposit_transaction() by the caller. `depositor_name` is who physically
+    banked the cash, required and staff-supplied (typically pre-filled from the
+    transaction's own registered name, but editable — see CashDepositAllocation's
+    docstring)."""
     if hasattr(record, "deposit"):
         raise ValueError("This day's cash deposit has already been allocated.")
     depositor_name = depositor_name.strip()

@@ -11,7 +11,14 @@ from core.mixins import ModulePermissionRequiredMixin
 
 from .forms import DailyReconciliationForm
 from .models import DailyReconciliation
-from .services import allocate_cash_deposit, candidate_deposit_transactions, summary_for
+from .services import (
+    allocate_cash_deposit,
+    candidate_deposit_transactions,
+    deposit_variance,
+    search_deposit_transactions,
+    summary_for,
+    valid_deposit_transaction,
+)
 
 
 class ViewReconciliationMixin(ModulePermissionRequiredMixin):
@@ -55,6 +62,7 @@ class ReconciliationEntryView(EditReconciliationMixin, View):
             "max_date": _today(),
             "summary": summary_for(target, record.cash_collected if record else None),
             "deposit_candidates": candidate_deposit_transactions(record) if record else [],
+            "deposit_variance": deposit_variance(record) if record else None,
         }
         return render(request, self.template_name, ctx)
 
@@ -106,20 +114,21 @@ class DailyReconciliationDetailView(ViewReconciliationMixin, DetailView):
         ctx = super().get_context_data(**kwargs)
         ctx["summary"] = summary_for(self.object.date, self.object.cash_collected)
         ctx["deposit_candidates"] = candidate_deposit_transactions(self.object)
+        ctx["deposit_variance"] = deposit_variance(self.object)
         return ctx
 
 
 class CashDepositAllocateView(EditReconciliationMixin, View):
-    """Staff confirms one of the candidate M-Pesa transactions services.py surfaced
-    as this day's cash deposit. Reachable from either the today page or a past day's
-    detail page, so it redirects back to wherever the POST came from."""
+    """Staff confirms an M-Pesa transaction — from either the auto-matched
+    candidates or a search result — as this day's cash deposit. Reachable from
+    either the today page or a past day's detail page, so it redirects back to
+    wherever the POST came from."""
 
     def post(self, request, pk):
         record = get_object_or_404(DailyReconciliation, pk=pk)
         trans_id = request.POST.get("trans_id", "").strip()
         depositor_name = request.POST.get("depositor_name", "").strip()
-        candidate_ids = {t.TransID for t in candidate_deposit_transactions(record)}
-        if not trans_id or trans_id not in candidate_ids:
+        if not trans_id or not valid_deposit_transaction(record, trans_id):
             messages.error(request, "That M-Pesa transaction is no longer a valid match for this day.")
         elif not depositor_name:
             messages.error(request, "Enter who deposited the cash before allocating.")
@@ -128,3 +137,20 @@ class CashDepositAllocateView(EditReconciliationMixin, View):
             messages.success(request, "Cash deposit allocated.")
         next_url = request.POST.get("next") or reverse("daily_reconciliation:detail", args=[record.pk])
         return redirect(next_url)
+
+
+class CashDepositSearchView(EditReconciliationMixin, View):
+    """htmx-backed search fallback for the Cash Deposit card — lets staff find any
+    M-Pesa transaction by TransID, name, phone, or amount, for cases the
+    auto-matched (exact-amount) candidates miss."""
+
+    def get(self, request, pk):
+        record = get_object_or_404(DailyReconciliation, pk=pk)
+        results = search_deposit_transactions(record, request.GET.get("q", ""))
+        # This view's own path is the search endpoint, not the reconciliation page —
+        # the caller passes back where to redirect to after an allocation via ?next=.
+        next_url = request.GET.get("next") or reverse("daily_reconciliation:detail", args=[record.pk])
+        return render(
+            request, "daily_reconciliation/_deposit_search_results.html",
+            {"results": results, "record": record, "next_url": next_url},
+        )

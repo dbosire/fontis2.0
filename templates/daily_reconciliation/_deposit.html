@@ -1,8 +1,8 @@
 {% comment %}
-Usage: {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates %}
+Usage: {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance %}
 Shows the M-Pesa transaction that received this day's physical cash takings, once
 staff have confirmed one; otherwise lets staff pick from candidate transactions
-services.py matched by amount + timing.
+services.py matched by amount + timing, or search for any other transaction.
 {% endcomment %}
 {% load ui %}
 <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5 mb-6">
@@ -33,30 +33,30 @@ services.py matched by amount + timing.
                 <dd class="text-gray-900 dark:text-white">{{ record.deposit.date_created|date:"d M Y, H:i" }}</dd>
             </div>
         </dl>
-    {% elif deposit_candidates %}
+        <div class="pt-3 mt-3 border-t border-gray-200 dark:border-slate-700">
+            <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Deposit vs Cash Collected</p>
+            {% include "daily_reconciliation/_variance.html" with variance=deposit_variance %}
+        </div>
+    {% elif record.cash_collected is not None %}
+        {% if deposit_candidates %}
         <p class="text-xs text-gray-500 dark:text-slate-400 mb-3">
             {{ deposit_candidates|length }} M-Pesa transaction{{ deposit_candidates|length|pluralize }} match{{ deposit_candidates|length|pluralize:"es," }} this day's cash count — confirm which one is the deposit.
         </p>
-        <div class="space-y-2">
+        <div class="space-y-2 mb-4">
             {% for txn in deposit_candidates %}
-            <form method="post" action="{% url 'daily_reconciliation:allocate_deposit' record.pk %}" class="border border-gray-200 dark:border-slate-700 rounded-md px-3 py-2">
-                {% csrf_token %}
-                <input type="hidden" name="trans_id" value="{{ txn.TransID }}">
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <div class="text-sm mb-2">
-                    <p class="text-gray-900 dark:text-white font-medium">{{ txn.TransID }} — {{ txn.TransAmount|floatformat:2 }}</p>
-                    <p class="text-xs text-gray-500 dark:text-slate-400">{{ txn.MSISDN }} &bull; {{ txn.trans_datetime|date:"d M Y, H:i" }}</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input type="text" name="depositor_name" value="{{ txn.full_name }}" required placeholder="Who deposited this?"
-                           class="flex-1 rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                    <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 shrink-0">Allocate</button>
-                </div>
-            </form>
+            {% include "daily_reconciliation/_deposit_txn_row.html" with txn=txn record=record next_url=request.get_full_path %}
             {% endfor %}
         </div>
-    {% elif record.cash_collected is not None %}
-        <p class="text-sm text-gray-400 dark:text-slate-500">No matching M-Pesa transaction found yet for this amount.</p>
+        {% endif %}
+        <div class="{% if deposit_candidates %}pt-4 border-t border-gray-200 dark:border-slate-700{% endif %}">
+            <label class="block text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Or search M-Pesa transactions</label>
+            <input type="text" name="q" placeholder="Search by transaction ID, name, or phone…"
+                   hx-get="{% url 'daily_reconciliation:search_deposit' record.pk %}?next={{ request.get_full_path|urlencode }}"
+                   hx-trigger="input changed delay:300ms"
+                   hx-target="#deposit-search-results" hx-swap="innerHTML"
+                   class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <div id="deposit-search-results" class="mt-2"></div>
+        </div>
     {% else %}
         <p class="text-sm text-gray-400 dark:text-slate-500">Enter the cash count first.</p>
     {% endif %}

@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates %}
+    {% include "daily_reconciliation/_deposit.html" with record=record deposit_candidates=deposit_candidates deposit_variance=deposit_variance %}
 
     <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
         <dl class="grid grid-cols-2 gap-3 text-sm">

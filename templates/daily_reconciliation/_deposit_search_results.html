@@ -1,0 +1,10 @@
+{% comment %}
+Rendered by CashDepositSearchView into #deposit-search-results via htmx.
+{% endcomment %}
+<div class="space-y-2">
+    {% for txn in results %}
+    {% include "daily_reconciliation/_deposit_txn_row.html" with txn=txn record=record next_url=next_url %}
+    {% empty %}
+    <p class="text-sm text-gray-400 dark:text-slate-500 px-1">No matching M-Pesa transactions found.</p>
+    {% endfor %}
+</div>
