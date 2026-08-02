@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block page_title %}Expenses Dashboard{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Expenses Dashboard" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">From</label>
+            <input type="date" name="date_start" value="{{ filters.date_start }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">To</label>
+            <input type="date" name="date_end" value="{{ filters.date_end }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+        <div class="flex-1"></div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" id="download-chart-btn" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">
+                Download Chart Image
+            </button>
+            <a href="?export=xlsx&date_start={{ filters.date_start }}&date_end={{ filters.date_end }}"
+               class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">
+                Export Records (Excel)
+            </a>
+            <a href="?export=pdf&date_start={{ filters.date_start }}&date_end={{ filters.date_end }}"
+               class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">
+                Export Records (PDF)
+            </a>
+        </div>
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <p class="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide">Total Spend</p>
+    <p class="text-2xl font-semibold text-gray-900 dark:text-white mt-1">{{ total_amount|floatformat:2 }}</p>
+    <p class="text-xs text-gray-500 dark:text-slate-400 mt-1">{{ filters.date_start }} to {{ filters.date_end }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Expenses by Category</h2>
+        <canvas id="expense-category-chart" height="220"></canvas>
+    </div>
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <thead class="bg-gray-50 dark:bg-slate-800/60">
+                <tr>
+                    <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                    <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Total</th>
+                    <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">%</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for row in breakdown %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-900 dark:text-white">{{ row.category }}</td>
+                    <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ row.total|floatformat:2 }}</td>
+                    <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400">{% if total_amount %}{% widthratio row.total total_amount 100 %}{% else %}0{% endif %}%</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No expenses in this period.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <h2 class="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700">Records</h2>
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Category</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for expense in expenses %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ expense.date_created|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ expense.expense_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ expense.category }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ expense.employee.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ expense.amount|floatformat:2 }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ expense.get_status_display }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No expenses in this period.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{{ breakdown|json_script:"category-data" }}
+<script>
+(function () {
+    const breakdown = JSON.parse(document.getElementById('category-data').textContent);
+    const palette = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#4f46e5'];
+    const chart = new Chart(document.getElementById('expense-category-chart'), {
+        type: 'doughnut',
+        data: {
+            labels: breakdown.map(function (row) { return row.category; }),
+            datasets: [{
+                data: breakdown.map(function (row) { return row.total; }),
+                backgroundColor: breakdown.map(function (_, i) { return palette[i % palette.length]; }),
+            }],
+        },
+        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } },
+    });
+
+    document.getElementById('download-chart-btn').addEventListener('click', function () {
+        const link = document.createElement('a');
+        link.href = chart.toBase64Image();
+        link.download = 'expenses-by-category-{{ filters.date_start }}-to-{{ filters.date_end }}.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+})();
+</script>
+{% endblock %}

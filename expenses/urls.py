@@ -6,6 +6,7 @@ app_name = "expenses"
 
 urlpatterns = [
     path("", views.ExpenseListView.as_view(), name="list"),
+    path("dashboard/", views.ExpenseDashboardView.as_view(), name="dashboard"),
     path("add/", views.ExpenseCreateView.as_view(), name="add"),
     path("<int:pk>/edit/", views.ExpenseUpdateView.as_view(), name="edit"),
     path("<int:pk>/delete/", views.ExpenseDeleteView.as_view(), name="delete"),

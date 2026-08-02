@@ -1,12 +1,23 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Sum
+from django.shortcuts import render
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
+from core.exports import build_xlsx, render_pdf
 from core.mixins import ModulePermissionRequiredMixin
 from finance.services import sync_journal_for_expense, void_journal_for_expense
 from .forms import ExpenseCategoryForm, ExpenseForm
 from .models import Expense, ExpenseCategory
+
+
+# USE_TZ=False project-wide — naive local time only, matching every other app.
+def _today():
+    return datetime.now(ZoneInfo("Africa/Nairobi")).date()
 
 
 class ViewExpensesMixin(ModulePermissionRequiredMixin):
@@ -48,6 +59,58 @@ class ExpenseListView(ViewExpensesMixin, ListView):
         params.pop("page", None)
         ctx["querystring"] = params.urlencode()
         return ctx
+
+
+class ExpenseDashboardView(ViewExpensesMixin, View):
+    """Category-spend breakdown for a date range, plus two distinct downloads: the
+    underlying records for that range (Excel/PDF, via core.exports) and the chart
+    itself as an image (handled entirely client-side in the template — Chart.js's
+    own toBase64Image(), no server round-trip needed for that one)."""
+
+    def get(self, request):
+        today = _today()
+        date_start = request.GET.get("date_start") or today.replace(day=1).isoformat()
+        date_end = request.GET.get("date_end") or today.isoformat()
+
+        qs = (
+            Expense.objects.filter(date_created__date__gte=date_start, date_created__date__lte=date_end)
+            .select_related("employee")
+        )
+
+        export = request.GET.get("export")
+        if export == "xlsx":
+            rows = [
+                [
+                    e.date_created.date().isoformat(), e.expense_name, e.category,
+                    e.employee.get_full_name() if e.employee else "", e.amount, e.get_status_display(),
+                ]
+                for e in qs
+            ]
+            return build_xlsx(
+                ["Date", "Name", "Category", "Employee", "Amount", "Status"], rows,
+                filename=f"expenses_{date_start}_to_{date_end}.xlsx",
+            )
+
+        breakdown = list(qs.values("category").annotate(total=Sum("amount")).order_by("-total"))
+        total_amount = qs.aggregate(t=Sum("amount"))["t"] or 0
+
+        if export == "pdf":
+            return render_pdf(
+                "expenses/pdf_report.html",
+                {
+                    "expenses": qs, "breakdown": breakdown, "total_amount": total_amount,
+                    "date_start": date_start, "date_end": date_end,
+                },
+                filename=f"expenses_{date_start}_to_{date_end}.pdf",
+            )
+
+        ctx = {
+            "expenses": qs,
+            "breakdown": breakdown,
+            "total_amount": total_amount,
+            "filters": {"date_start": date_start, "date_end": date_end},
+        }
+        return render(request, "expenses/expense_dashboard.html", ctx)
 
 
 class ExpenseCreateView(EditExpensesMixin, CreateView):

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #1f2937; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    p.period { margin-top: 0; color: #4b5563; }
+    h2 { font-size: 14px; margin-top: 20px; margin-bottom: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; }
+    th { background: #f3f4f6; }
+    td.amount, th.amount { text-align: right; }
+    tfoot td { font-weight: bold; background: #f9fafb; }
+</style>
+</head>
+<body>
+    <h1>Fontis Springs — Expenses Report</h1>
+    <p class="period">{{ date_start }} to {{ date_end }}</p>
+
+    <h2>By Category</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th class="amount">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in breakdown %}
+            <tr>
+                <td>{{ row.category }}</td>
+                <td class="amount">{{ row.total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td>Total</td>
+                <td class="amount">{{ total_amount|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <h2>Records</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Employee</th>
+                <th class="amount">Amount</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in expenses %}
+            <tr>
+                <td>{{ expense.date_created|date:"d M Y" }}</td>
+                <td>{{ expense.expense_name }}</td>
+                <td>{{ expense.category }}</td>
+                <td>{{ expense.employee.get_full_name|default:"—" }}</td>
+                <td class="amount">{{ expense.amount|floatformat:2 }}</td>
+                <td>{{ expense.get_status_display }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4">Total</td>
+                <td class="amount">{{ total_amount|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</body>
+</html>
