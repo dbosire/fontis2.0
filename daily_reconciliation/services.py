@@ -1,10 +1,13 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Sum
 
 from debts.models import DebtPayment
-from mpesa.models import MpesaTransaction
+from mpesa.models import LegacyTransactionAllocation, MpesaTransaction
 from sales.models import Sale
+
+from .models import CashDepositAllocation
 
 
 def _debts_paid(date_, method):
@@ -95,3 +98,35 @@ def summary_for(date_, cash_collected=None):
         "actual_mpesa": act_mpesa,
         "mpesa_variance": round(act_mpesa - exp_mpesa, 2) if act_mpesa is not None else None,
     }
+
+
+def candidate_deposit_transactions(record):
+    """M-Pesa transactions that could be *this* day's cash-takings deposit: same
+    amount as `cash_collected`, timestamped on or after the reconciliation date (the
+    deposit happens after the cash is counted, never before), and not already spoken
+    for — either as another day's deposit, or (partially or fully) allocated to a
+    customer debt via mpesa's legacy allocation. Returns [] once a deposit is already
+    allocated for this record, or before any cash count has been entered."""
+    if record.cash_collected is None or hasattr(record, "deposit"):
+        return []
+    cutoff = record.date.strftime("%Y%m%d") + "000000"
+    excluded_trans_ids = set(CashDepositAllocation.objects.values_list("trans_id", flat=True)) | set(
+        LegacyTransactionAllocation.objects.values_list("trans_id", flat=True)
+    )
+    return list(
+        MpesaTransaction.objects.filter(TransAmount=record.cash_collected, TransTime__gte=cutoff)
+        .exclude(TransID__in=excluded_trans_ids)
+        .order_by("TransTime")[:10]
+    )
+
+
+@transaction.atomic
+def allocate_cash_deposit(record, trans_id, *, user=None):
+    """Staff-confirmed match of an M-Pesa transaction to this day's cash deposit —
+    never automatic, always one of the candidates services.py itself surfaced."""
+    if hasattr(record, "deposit"):
+        raise ValueError("This day's cash deposit has already been allocated.")
+    txn = MpesaTransaction.objects.get(TransID=trans_id)
+    return CashDepositAllocation.objects.create(
+        reconciliation=record, trans_id=trans_id, amount=float(txn.TransAmount), allocated_by=user,
+    )
