@@ -27,7 +27,7 @@
 
     <div class="space-y-3">
         {% for group in groups %}
-        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden" data-group>
+        <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto" data-group>
             <div class="flex flex-wrap items-center gap-3 px-5 py-3 bg-gray-50 dark:bg-slate-800/60 border-b border-gray-200 dark:border-slate-700">
                 <input type="checkbox" class="group-select-all rounded border-gray-300 dark:border-slate-600">
                 <span class="font-medium text-gray-900 dark:text-white">{{ group.customer_name }}</span>

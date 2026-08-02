@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
@@ -24,8 +25,29 @@ class ExpenseListView(ViewExpensesMixin, ListView):
     context_object_name = "expenses"
     paginate_by = 30
 
+    def get_template_names(self):
+        # Filter-as-you-type: an htmx request only needs the results partial
+        # (table + pagination), not the full page with the search form and sidebar —
+        # same pattern as sales/views.py::SaleListView.
+        if self.request.htmx:
+            return ["expenses/expense_results.html"]
+        return [self.template_name]
+
     def get_queryset(self):
-        return Expense.objects.select_related("employee")
+        qs = Expense.objects.select_related("employee")
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(Q(expense_name__icontains=q) | Q(category__icontains=q))
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["filters"] = {"q": self.request.GET.get("q", "")}
+        # preserve the active filters on pagination links without the page param
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        ctx["querystring"] = params.urlencode()
+        return ctx
 
 
 class ExpenseCreateView(EditExpensesMixin, CreateView):

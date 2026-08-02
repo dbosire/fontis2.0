@@ -5,56 +5,37 @@
 {% include "core/components/page_header.html" with title="M-Pesa Transactions" %}
 <p class="text-sm text-gray-500 dark:text-slate-400 -mt-3 mb-4">Use <strong>Allocate</strong> to apply a payment to one or more customers' outstanding debts — for a lump-sum transaction (e.g. an agent's collected dues) that doesn't correspond to any single debt.</p>
 
-<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
-    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
-        <thead class="bg-gray-50 dark:bg-slate-800/60">
-            <tr>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Time</th>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">TransID</th>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Phone</th>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
-                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Bill Ref</th>
-                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Org Balance</th>
-                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Allocated</th>
-                <th class="px-5 py-2"></th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
-            {% for txn in transactions %}
-            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
-                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ txn.trans_datetime|date:"d M Y H:i"|default:txn.TransTime }}</td>
-                <td class="px-5 py-2 text-gray-900 dark:text-white font-mono text-xs">{{ txn.TransID }}</td>
-                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.MSISDN }}</td>
-                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.full_name }}</td>
-                <td class="px-5 py-2 text-right text-gray-900 dark:text-white">{{ txn.TransAmount|floatformat:2 }}</td>
-                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ txn.BillRefNumber|default:"—" }}</td>
-                <td class="px-5 py-2 text-right text-gray-700 dark:text-slate-300">{{ txn.OrgAccountBalance|default:"—" }}</td>
-                <td class="px-5 py-2">
-                    {% if txn.allocated_amount >= txn.TransAmount %}{% status_badge "Fully allocated" "success" %}
-                    {% elif txn.allocated_amount > 0 %}
-                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300">
-                            KES {{ txn.allocated_amount|floatformat:2 }} allocated
-                        </span>
-                    {% else %}<span class="text-gray-400 dark:text-slate-500 text-xs">—</span>{% endif %}
-                </td>
-                <td class="px-5 py-2 text-right">
-                    {% if txn.TransID %}
-                    <a href="{% url 'mpesa:transaction_allocate' txn.TransID %}" class="text-blue-600 hover:underline">Allocate</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="9" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No transactions yet.</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<form id="mpesa-filter-form" method="get"
+      hx-get="{% url 'mpesa:list' %}"
+      hx-target="#mpesa-results"
+      hx-swap="innerHTML"
+      hx-push-url="true"
+      hx-indicator="#mpesa-search-spinner"
+      hx-trigger="input changed delay:300ms from:find [name='q'], submit"
+      class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[220px]">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Search</label>
+            <div class="relative">
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="Name, phone, TransID or bill ref…" autocomplete="off"
+                       class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white pl-3 pr-8 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <svg id="mpesa-search-spinner" class="htmx-indicator absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400 dark:text-slate-500"
+                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+            {% if filters.q %}
+                <a href="{% url 'mpesa:list' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<div id="mpesa-results">
+    {% include "mpesa/transaction_results.html" %}
 </div>
-{% if is_paginated %}
-<div class="flex justify-center gap-2 mt-4 text-sm">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
-    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
-</div>
-{% endif %}
 {% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -30,8 +30,32 @@ class MpesaTransactionListView(ViewMpesaMixin, ListView):
     context_object_name = "transactions"
     paginate_by = 50
 
+    def get_template_names(self):
+        # Filter-as-you-type: an htmx request only needs the results partial
+        # (table + pagination), not the full page with the search form and sidebar —
+        # same pattern as sales/views.py::SaleListView.
+        if self.request.htmx:
+            return ["mpesa/transaction_results.html"]
+        return [self.template_name]
+
+    def get_queryset(self):
+        qs = MpesaTransaction.objects.all()
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(
+                Q(FirstName__icontains=q) | Q(MiddleName__icontains=q) | Q(LastName__icontains=q)
+                | Q(MSISDN__icontains=q) | Q(TransID__icontains=q) | Q(BillRefNumber__icontains=q)
+            )
+        return qs
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        ctx["filters"] = {"q": self.request.GET.get("q", "")}
+        # preserve the active filters on pagination links without the page param
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        ctx["querystring"] = params.urlencode()
+
         trans_ids = [txn.TransID for txn in ctx["transactions"] if txn.TransID]
         allocated_by_trans_id = dict(
             LegacyTransactionAllocation.objects.filter(trans_id__in=trans_ids)

@@ -23,7 +23,8 @@
         <p class="text-sm text-red-600 mb-4">Rejection reason: {{ pr.rejection_reason }}</p>
         {% endif %}
 
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm border border-gray-100 dark:border-slate-800 rounded-md overflow-hidden">
+        <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm border border-gray-100 dark:border-slate-800 rounded-md">
             <thead class="bg-gray-50 dark:bg-slate-800/60">
                 <tr>
                     <th class="px-3 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Material</th>
@@ -41,6 +42,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
 
         {% if pr.status == "pending" %}
         <div class="flex gap-3 mt-4">
