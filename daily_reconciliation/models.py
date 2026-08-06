@@ -32,17 +32,20 @@ class DailyReconciliation(models.Model):
 
 
 class CashDepositAllocation(models.Model):
-    """Links an M-Pesa transaction that received (some of) a day's physical cash
-    takings — an agent depositing the day's till count into M-Pesa after close — to
-    the DailyReconciliation it settles. A day can have several of these: cash is
-    often banked in more than one tranche, so this is a plain FK (many transactions
-    per day), not one-to-one. Keyed off TransID rather than an FK to the transaction
-    itself: like mpesa.LegacyTransactionAllocation, mpesa_transactions is a
-    managed=False legacy table with no allocation columns of its own. `trans_id`
-    stays globally unique here — one real M-Pesa transaction is one deposit event,
-    never split across days or double-counted. Manual, staff-driven — staff confirm
-    a candidate transaction surfaced by services.py's amount+date matching, never an
-    automatic/silent match.
+    """Links an M-Pesa transaction — or a slice of one — to the DailyReconciliation
+    it (partly) settles. Both sides are plain FKs, not one-to-one/unique: a day's
+    cash is often banked in more than one tranche (several transactions for one
+    day), and a single large transaction can just as easily cover more than one
+    day's takings in one lump sum (one transaction split across several days) — see
+    services.py's deposit_available_amount(), which tracks how much of a given
+    `trans_id` remains unclaimed across every row here (plus mpesa's own
+    LegacyTransactionAllocation for customer debts) so the same money can never be
+    claimed twice. Keyed off TransID rather than an FK to the transaction itself:
+    like mpesa.LegacyTransactionAllocation, mpesa_transactions is a managed=False
+    legacy table with no allocation columns of its own. `amount` is however much of
+    the transaction was allocated to *this* day, not necessarily its full value.
+    Manual, staff-driven — staff confirm a candidate transaction surfaced by
+    services.py's amount+date matching, never an automatic/silent match.
 
     `depositor_name` is who physically banked the cash — not necessarily
     `allocated_by`, which is whoever in the office confirmed the match afterward and
@@ -52,7 +55,7 @@ class CashDepositAllocation(models.Model):
     actual staff member who made the deposit."""
 
     reconciliation = models.ForeignKey(DailyReconciliation, on_delete=models.CASCADE, related_name="deposits")
-    trans_id = models.CharField(max_length=255, unique=True)
+    trans_id = models.CharField(max_length=255, db_index=True)
     amount = models.FloatField()
     depositor_name = models.CharField(max_length=150)
     allocated_by = models.ForeignKey(

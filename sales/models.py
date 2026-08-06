@@ -1,6 +1,15 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from django.db import models
 
 from maintenance.models import JarType
+
+
+def _now():
+    # USE_TZ=False project-wide — naive local time only, matching every other app
+    # (see mpesa/services/reconciliation.py::_now() for the same pattern).
+    return datetime.now(ZoneInfo("Africa/Nairobi")).replace(tzinfo=None)
 
 
 class Sale(models.Model):
@@ -28,7 +37,9 @@ class Sale(models.Model):
     amount = models.FloatField(default=0)
     status = models.SmallIntegerField(choices=STATUS_CHOICES, default=UNPAID)
     comments = models.TextField(blank=True, null=True)
-    date_created = models.DateTimeField(auto_now_add=True)
+    # Was auto_now_add — switched to a plain default so staff can correct the time
+    # of a backfilled or mistimed sale from the edit form (see sales/forms.py).
+    date_created = models.DateTimeField(default=_now)
     date_updated = models.DateTimeField(auto_now=True, null=True)
 
     class Meta:

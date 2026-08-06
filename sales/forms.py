@@ -25,7 +25,7 @@ class SaleForm(forms.ModelForm):
 
     class Meta:
         model = Sale
-        fields = ["customer_name", "type", "delivery_address", "status", "comments"]
+        fields = ["customer_name", "type", "delivery_address", "status", "date_created", "comments"]
         widgets = {
             "customer_name": forms.TextInput(
                 attrs={"class": TEXT_INPUT, "list": "customer-options", "autocomplete": "off"}
@@ -33,6 +33,9 @@ class SaleForm(forms.ModelForm):
             "type": forms.Select(attrs={"class": TEXT_INPUT}),
             "delivery_address": forms.TextInput(attrs={"class": TEXT_INPUT}),
             "status": forms.Select(attrs={"class": TEXT_INPUT}),
+            "date_created": forms.DateTimeInput(
+                attrs={"class": TEXT_INPUT, "type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
             "comments": forms.Textarea(attrs={"class": TEXT_INPUT, "rows": 2}),
         }
 

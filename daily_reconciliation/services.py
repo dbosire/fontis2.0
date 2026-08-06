@@ -5,6 +5,7 @@ from django.db.models import Q, Sum
 
 from debts.models import DebtPayment
 from mpesa.models import LegacyTransactionAllocation, MpesaTransaction
+from mpesa.services.reconciliation import legacy_allocated_total
 from sales.models import Sale
 
 from .models import CashDepositAllocation
@@ -100,20 +101,46 @@ def summary_for(date_, cash_collected=None):
     }
 
 
-def _excluded_deposit_trans_ids():
-    """TransIDs already spoken for — either as another day's cash deposit, or
-    (partially or fully) allocated to a customer debt via mpesa's legacy
-    allocation — so neither the auto-matched candidates nor search can double-offer
-    a transaction that's already been claimed elsewhere."""
-    return set(CashDepositAllocation.objects.values_list("trans_id", flat=True)) | set(
+def cash_deposit_allocated_total(trans_id):
+    """Sum already claimed against this M-Pesa transaction across every day's cash
+    deposit it's been split into so far — the deposit-side counterpart of mpesa's
+    own legacy_allocated_total() for customer debts."""
+    return CashDepositAllocation.objects.filter(trans_id=trans_id).aggregate(t=Sum("amount"))["t"] or 0.0
+
+
+def deposit_available_amount(txn):
+    """How much of this M-Pesa transaction hasn't yet been claimed anywhere — by a
+    customer-debt allocation (mpesa's legacy allocation) or by any day's cash
+    deposit. A single transaction can be split across several days (an agent
+    banking more than one day's takings in one lump sum), or between a debt and a
+    deposit, as long as the total claimed across all of that never exceeds what the
+    transaction actually carried."""
+    claimed = legacy_allocated_total(txn.TransID) + cash_deposit_allocated_total(txn.TransID)
+    return round(float(txn.TransAmount) - claimed, 2)
+
+
+def _fully_claimed_trans_ids():
+    """TransIDs with nothing left to allocate anywhere — excluded from candidates
+    and search so staff aren't offered a transaction that's already fully spoken
+    for. Bounded to transactions that appear in an allocation table at all; a
+    transaction untouched by either table is implicitly fully available and never
+    needs checking here."""
+    trans_ids = set(CashDepositAllocation.objects.values_list("trans_id", flat=True)) | set(
         LegacyTransactionAllocation.objects.values_list("trans_id", flat=True)
     )
+    fully_claimed = set()
+    for trans_id in trans_ids:
+        txn = MpesaTransaction.objects.filter(TransID=trans_id).first()
+        if txn is not None and deposit_available_amount(txn) <= 0.01:
+            fully_claimed.add(trans_id)
+    return fully_claimed
 
 
 def deposited_total(record):
-    """Sum of every M-Pesa transaction allocated as (part of) this day's cash
-    deposit so far. 0 if none yet — distinct from deposit_variance()'s None, since
-    "nothing deposited" is a real, summable amount, not an undefined comparison."""
+    """Sum of every M-Pesa transaction (or partial slice of one) allocated as part
+    of this day's cash deposit so far. 0 if none yet — distinct from
+    deposit_variance()'s None, since "nothing deposited" is a real, summable
+    amount, not an undefined comparison."""
     return record.deposits.aggregate(t=Sum("amount"))["t"] or 0.0
 
 
@@ -125,42 +152,58 @@ def _remaining_to_deposit(record):
     return record.cash_collected - deposited_total(record)
 
 
+def _annotate_deposit_txn(txn, remaining):
+    """Attaches the per-row fields the shared _deposit_txn_row.html template
+    needs: how much of the transaction is still unclaimed anywhere (`.available`,
+    since it may already be split across other days or a debt), a sensible starting
+    point for the editable allocation amount (`.suggested_amount` — capped at
+    whatever's actually available, never more), and `.variance` (available minus
+    what's still remaining today) so staff can judge excess/deficit before
+    allocating."""
+    available = deposit_available_amount(txn)
+    txn.available = available
+    txn.suggested_amount = round(min(available, remaining), 2) if remaining > 0 else round(available, 2)
+    txn.variance = round(available - remaining, 2)
+    return txn
+
+
 def candidate_deposit_transactions(record):
     """M-Pesa transactions that could be the *next* tranche of this day's
-    cash-takings deposit: amount matching whatever's still remaining after any
-    deposits already allocated, timestamped on or after the reconciliation date (a
-    deposit happens after the cash is counted, never before), and not already spoken
-    for. [] once nothing remains, or before any cash count has been entered. Each
-    result carries a `.variance` of 0 — these are exact matches against the
-    remaining balance by construction — so candidate and search rows can share one
-    template."""
+    cash-takings deposit: original amount matching whatever's still remaining after
+    any deposits already allocated, timestamped on or after the reconciliation date
+    (a deposit happens after the cash is counted, never before), and not already
+    fully claimed elsewhere. [] once nothing remains, or before any cash count has
+    been entered. A transaction bigger than what's needed here (e.g. one deposit
+    covering several days) won't turn up as an exact match — that's what the search
+    box below is for, letting staff allocate just part of it."""
     if record.cash_collected is None:
         return []
-    remaining = _remaining_to_deposit(record)
+    remaining = round(_remaining_to_deposit(record), 2)
+    if remaining <= 0:
+        return []
     cutoff = record.date.strftime("%Y%m%d") + "000000"
     results = list(
         MpesaTransaction.objects.filter(TransAmount=remaining, TransTime__gte=cutoff)
-        .exclude(TransID__in=_excluded_deposit_trans_ids())
+        .exclude(TransID__in=_fully_claimed_trans_ids())
         .order_by("TransTime")[:10]
     )
-    for txn in results:
-        txn.variance = 0.0
-    return results
+    return [_annotate_deposit_txn(txn, remaining) for txn in results]
 
 
 def search_deposit_transactions(record, query):
     """Manual fallback for the Cash Deposit search box — unlike
     candidate_deposit_transactions() this is NOT constrained to an exact amount
     match, since a real deposit can legitimately differ from what's still owed (an
-    agent's fee, a rounding difference, another partial tranche). Each result's
-    `.variance` (its amount minus what's still remaining after existing deposits)
-    lets staff judge that difference before allocating rather than being surprised
-    after. Still constrained to on/after the reconciliation date and not already
-    allocated elsewhere; requires a non-blank query — never lists the whole table."""
+    agent's fee, a rounding difference, another partial tranche), and a single large
+    transaction can be *distributed* across several different days' reconciliations
+    — staff pick how much of it to allocate here via the amount field
+    allocate_cash_deposit() then records. Still constrained to on/after the
+    reconciliation date and not already fully claimed elsewhere; requires a
+    non-blank query — never lists the whole table."""
     query = (query or "").strip()
     if not query or record.cash_collected is None:
         return []
-    remaining = _remaining_to_deposit(record)
+    remaining = round(_remaining_to_deposit(record), 2)
     cutoff = record.date.strftime("%Y%m%d") + "000000"
     filters = (
         Q(TransID__icontains=query) | Q(MSISDN__icontains=query) | Q(FirstName__icontains=query)
@@ -172,29 +215,26 @@ def search_deposit_transactions(record, query):
         pass
     results = list(
         MpesaTransaction.objects.filter(filters, TransTime__gte=cutoff)
-        .exclude(TransID__in=_excluded_deposit_trans_ids())
+        .exclude(TransID__in=_fully_claimed_trans_ids())
         .order_by("-TransTime")[:15]
     )
-    for txn in results:
-        txn.variance = round(float(txn.TransAmount) - remaining, 2)
-    return results
+    return [_annotate_deposit_txn(txn, remaining) for txn in results]
 
 
 def valid_deposit_transaction(record, trans_id):
     """Whether `trans_id` is allocatable as (part of) this record's deposit right
     now — a real M-Pesa transaction, timestamped on/after the reconciliation date,
-    not already claimed elsewhere. The POST handler validates against this rather
-    than against candidate_deposit_transactions() alone, since a transaction
+    with something still unclaimed on it. The POST handler validates against this
+    rather than against candidate_deposit_transactions() alone, since a transaction
     confirmed via search is deliberately not amount-constrained and so isn't
     necessarily in that list."""
     if record.cash_collected is None:
         return None
     cutoff = record.date.strftime("%Y%m%d") + "000000"
-    return (
-        MpesaTransaction.objects.filter(TransID=trans_id, TransTime__gte=cutoff)
-        .exclude(TransID__in=_excluded_deposit_trans_ids())
-        .first()
-    )
+    txn = MpesaTransaction.objects.filter(TransID=trans_id, TransTime__gte=cutoff).first()
+    if txn is not None and deposit_available_amount(txn) > 0.01:
+        return txn
+    return None
 
 
 def deposit_variance(record):
@@ -208,19 +248,33 @@ def deposit_variance(record):
 
 
 @transaction.atomic
-def allocate_cash_deposit(record, trans_id, depositor_name, *, user=None):
-    """Staff-confirmed match of an M-Pesa transaction to (part of) this day's cash
-    deposit — never automatic, and never exclusive: a day can have several of these
-    if cash was banked in more than one tranche. `trans_id` must already be
-    validated via valid_deposit_transaction() by the caller. `depositor_name` is who
+def allocate_cash_deposit(record, trans_id, depositor_name, amount, *, user=None):
+    """Staff-confirmed match of (part of) an M-Pesa transaction to (part of) this
+    day's cash deposit — never automatic, and never exclusive on either side: a day
+    can have several of these if cash was banked in more than one tranche, and a
+    single transaction can be split across several different days if it covered
+    more than one day's takings in one lump sum. `trans_id` must already be
+    validated via valid_deposit_transaction() by the caller. `amount` is how much of
+    the transaction to credit to this day — capped here against what's actually
+    still unclaimed on it, so two staff allocating from the same large deposit can
+    never together claim more than it actually carried. `depositor_name` is who
     physically banked the cash, required and staff-supplied (typically pre-filled
     from the transaction's own registered name, but editable — see
     CashDepositAllocation's docstring)."""
     depositor_name = depositor_name.strip()
     if not depositor_name:
         raise ValueError("The depositor's name is required.")
-    txn = MpesaTransaction.objects.get(TransID=trans_id)
+    try:
+        amount = round(float(amount), 2)
+    except (TypeError, ValueError):
+        raise ValueError("Enter a valid amount.")
+    if amount <= 0:
+        raise ValueError("The allocated amount must be greater than zero.")
+    txn = MpesaTransaction.objects.select_for_update().get(TransID=trans_id)
+    available = deposit_available_amount(txn)
+    if amount > available + 0.01:
+        raise ValueError(f"Only KES {available:,.2f} of this transaction is still unallocated.")
     return CashDepositAllocation.objects.create(
-        reconciliation=record, trans_id=trans_id, amount=float(txn.TransAmount),
+        reconciliation=record, trans_id=trans_id, amount=amount,
         depositor_name=depositor_name, allocated_by=user,
     )

@@ -131,13 +131,17 @@ class CashDepositAllocateView(EditReconciliationMixin, View):
         record = get_object_or_404(DailyReconciliation, pk=pk)
         trans_id = request.POST.get("trans_id", "").strip()
         depositor_name = request.POST.get("depositor_name", "").strip()
+        amount = request.POST.get("amount", "").strip()
         if not trans_id or not valid_deposit_transaction(record, trans_id):
             messages.error(request, "That M-Pesa transaction is no longer a valid match for this day.")
         elif not depositor_name:
             messages.error(request, "Enter who deposited the cash before allocating.")
         else:
-            allocate_cash_deposit(record, trans_id, depositor_name, user=request.user)
-            messages.success(request, "Cash deposit allocated.")
+            try:
+                allocate_cash_deposit(record, trans_id, depositor_name, amount, user=request.user)
+                messages.success(request, "Cash deposit allocated.")
+            except ValueError as exc:
+                messages.error(request, str(exc))
         next_url = request.POST.get("next") or reverse("daily_reconciliation:detail", args=[record.pk])
         return redirect(next_url)
 
