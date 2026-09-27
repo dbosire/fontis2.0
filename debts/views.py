@@ -24,9 +24,15 @@ from system_info.services import get_settings_dict
 
 from .forms import DebtPaymentForm, PrepaymentForm
 from .models import CustomerCredit, DebtPayment
-from .services import record_debt_payment, record_prepayment
+from .services import (
+    has_related_credit_entries,
+    record_debt_payment,
+    record_prepayment,
+    rollback_debt_clearance,
+)
 
 OUTSTANDING_STATUSES = [Sale.UNPAID, Sale.PARTIAL]
+CLEARED_STATUSES = [Sale.CASH, Sale.MPESA, Sale.CREDIT]
 
 
 def _credit_balances_for(customer_names):
@@ -153,6 +159,98 @@ class DebtIndividualListView(ViewDebtsMixin, ListView):
             group["credit_balance"] = credit_balances.get(group["customer_name"])
         ctx["q"] = self.request.GET.get("q", "")
         return ctx
+
+
+class DebtClearedListView(ViewDebtsMixin, ListView):
+    """Sales that WERE tracked as debts (went through record_debt_payment at least
+    once) and are now fully settled — distinct from a sale paid in full immediately
+    at creation, which has no debt_payments and was never a debt to begin with.
+    `cleared_date` is the latest debt_payments.payment_date, i.e. whichever payment
+    actually settled it — the same one rollback_debt_clearance() would undo."""
+
+    template_name = "debts/debt_cleared_list.html"
+    context_object_name = "sales"
+    paginate_by = 30
+
+    def get_template_names(self):
+        if self.request.htmx:
+            return ["debts/debt_cleared_results.html"]
+        return [self.template_name]
+
+    def get_queryset(self):
+        qs = (
+            Sale.objects.filter(status__in=CLEARED_STATUSES, debt_payments__isnull=False)
+            .distinct()
+            .prefetch_related("debt_payments")
+            .annotate(cleared_date=Max("debt_payments__payment_date"))
+            .order_by("-cleared_date", "-pk")
+        )
+        q = self.request.GET.get("q", "").strip()
+        if q:
+            qs = qs.filter(customer_name__icontains=q)
+        date_start = self.request.GET.get("date_start")
+        date_end = self.request.GET.get("date_end")
+        if date_start:
+            qs = qs.filter(cleared_date__gte=date_start)
+        if date_end:
+            qs = qs.filter(cleared_date__lte=date_end)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        for sale in ctx["sales"]:
+            # debt_payments is prefetched but its default ordering (-payment_date,
+            # -id) doesn't guarantee it matches the actual clearing payment when
+            # more than one payment shares a payment_date — sort by date_created,
+            # the real insertion order, to match rollback_debt_clearance()'s choice.
+            payments = sorted(sale.debt_payments.all(), key=lambda p: (p.date_created, p.pk), reverse=True)
+            sale.last_payment = payments[0] if payments else None
+        ctx["q"] = self.request.GET.get("q", "")
+        ctx["date_start"] = self.request.GET.get("date_start", "")
+        ctx["date_end"] = self.request.GET.get("date_end", "")
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        ctx["querystring"] = params.urlencode()
+        return ctx
+
+
+class DebtRollbackClearanceView(EditDebtsMixin, View):
+    """Confirm-then-act: GET shows what will be undone (the settling payment, and
+    a warning if a CustomerCredit entry is tied to this sale — see
+    has_related_credit_entries()), POST actually rolls it back."""
+
+    template_name = "debts/rollback_confirm.html"
+
+    def get(self, request, pk):
+        sale = get_object_or_404(Sale, pk=pk)
+        if sale.status not in CLEARED_STATUSES:
+            messages.error(request, "This debt isn't cleared — there's nothing to roll back.")
+            return redirect(reverse("debts:cleared"))
+        last_payment = sale.debt_payments.order_by("-date_created", "-pk").first()
+        remaining_paid = 0
+        if last_payment:
+            remaining_paid = (
+                sale.debt_payments.exclude(pk=last_payment.pk).aggregate(t=Sum("amount"))["t"] or 0
+            )
+        ctx = {
+            "sale": sale,
+            "last_payment": last_payment,
+            "resulting_status": "Unpaid" if remaining_paid <= 0.01 else "Partially Paid",
+            "has_related_credit": has_related_credit_entries(sale),
+            "cancel_url": f"{reverse('debts:cleared')}",
+            "next": request.GET.get("next", ""),
+        }
+        return render(request, self.template_name, ctx)
+
+    def post(self, request, pk):
+        sale = get_object_or_404(Sale, pk=pk)
+        try:
+            rollback_debt_clearance(sale, user=request.user)
+            messages.success(request, f"Sale #{sale.pk}'s clearance was rolled back — now {sale.get_status_display()}.")
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        next_url = request.POST.get("next") or reverse("debts:cleared")
+        return redirect(next_url)
 
 
 class DebtExcelExportView(ViewDebtsMixin, ListView):

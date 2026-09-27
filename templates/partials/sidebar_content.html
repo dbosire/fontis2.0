@@ -62,6 +62,10 @@
                class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'debts' and url_name == 'individual' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 Individual Debts
             </a>
+            <a href="{% url 'debts:cleared' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'debts' and url_name == 'cleared' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Cleared Debts
+            </a>
         </div>
     </div>
 

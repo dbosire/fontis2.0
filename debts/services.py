@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.db.models.functions import Lower
 
-from crm.services.loyalty import award_points_for_sale
+from crm.services.loyalty import award_points_for_sale, reverse_points_for_sale
 from finance.services import sync_journal_for_sale
 from sales.models import Sale
 
@@ -105,6 +105,45 @@ def record_debt_payment(sale, *, amount, payment_date, payment_method, notes="",
             source=CustomerCredit.OVERPAYMENT, payment_method=payment_method, related_sale=sale,
             notes=f"Overpayment on Sale #{sale.pk}", recorded_by=user,
         )
+
+    return sale
+
+
+def has_related_credit_entries(sale):
+    """Whether rolling back this sale's clearance would leave a CustomerCredit entry
+    (an APPLIED consumption from a CREDIT settlement, or an OVERPAYMENT from
+    CASH/MPESA excess) referencing money that arrived alongside the payment being
+    rolled back. rollback_debt_clearance() never touches these itself — correlating
+    "this credit row came from this specific payment" isn't reliable enough to do
+    silently — so the confirm page uses this to point staff at Customer Credit to
+    review/delete them manually if that's warranted."""
+    return CustomerCredit.objects.filter(related_sale=sale).exists()
+
+
+@transaction.atomic
+def rollback_debt_clearance(sale, *, user=None):
+    """Undoes the most recent payment that fully settled this Sale: deletes that
+    DebtPayment, reverts status back to UNPAID or PARTIAL (based on whatever
+    payments remain), reposts the GL entry to match, and reverses any loyalty
+    points award_points_for_sale() gave when it settled. Any earlier PARTIAL
+    payments on this sale are left untouched — this rolls back the clearance, not
+    the sale's whole payment history. Does not touch related CustomerCredit entries
+    — see has_related_credit_entries()."""
+    sale = Sale.objects.select_for_update().get(pk=sale.pk)
+    if sale.status not in (Sale.CASH, Sale.MPESA, Sale.CREDIT):
+        raise ValueError("This debt isn't cleared — there's nothing to roll back.")
+
+    last_payment = sale.debt_payments.order_by("-date_created", "-pk").first()
+    if last_payment is None:
+        raise ValueError("No payment record found for this sale to roll back.")
+    last_payment.delete()
+
+    remaining_paid = sale.debt_payments.aggregate(t=Sum("amount"))["t"] or 0
+    sale.status = Sale.UNPAID if remaining_paid <= 0.01 else Sale.PARTIAL
+    sale.save(update_fields=["status"])
+
+    sync_journal_for_sale(sale, user=user)
+    reverse_points_for_sale(sale)
 
     return sale
 

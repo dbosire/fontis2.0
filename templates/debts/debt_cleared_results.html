@@ -1,0 +1,53 @@
+{% load ui %}
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Customer</th>
+                <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Cleared Via</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Cleared On</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Recorded By</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for sale in sales %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ sale.customer_name }}</td>
+                <td class="px-5 py-2 text-right font-medium text-gray-700 dark:text-slate-300">{{ sale.amount|floatformat:2 }}</td>
+                <td class="px-5 py-2">
+                    {% if sale.status == 1 %}{% status_badge "Cash" "success" %}
+                    {% elif sale.status == 2 %}{% status_badge "M-Pesa" "info" %}
+                    {% else %}{% status_badge "Credit" "neutral" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.cleared_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ sale.last_payment.recorded_by.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    <a href="{% url 'debts:sale_detail' sale.pk %}" class="text-blue-600 hover:underline">Details</a>
+                    <a href="{% url 'debts:rollback_clearance' sale.pk %}?next={{ request.get_full_path|urlencode }}" class="text-amber-600 hover:underline">Rollback</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">{% if q or date_start or date_end %}No cleared debts match these filters.{% else %}No cleared debts yet.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-get="{% url 'debts:cleared' %}?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-target="#cleared-debts-results" hx-push-url="true"
+           class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>
+    {% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-get="{% url 'debts:cleared' %}?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}"
+           hx-target="#cleared-debts-results" hx-push-url="true"
+           class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>
+    {% endif %}
+</div>
+{% endif %}

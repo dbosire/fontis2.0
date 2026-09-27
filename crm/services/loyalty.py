@@ -45,6 +45,26 @@ def award_points_for_sale(sale, user=None):
     )
 
 
+def reverse_points_for_sale(sale):
+    """Undoes whatever award_points_for_sale() earned for this sale — deletes the
+    EARN transaction and decrements the balance by the same amount, rather than
+    logging an offsetting ADJUSTMENT. Deleting it (not just offsetting it) matters
+    for award_points_for_sale()'s own idempotency check: if this sale is later
+    re-cleared, that check looks for an EARN row with this reference, and only a
+    genuine absence lets it award again."""
+    from crm.models import LoyaltyTransaction
+
+    earn = LoyaltyTransaction.objects.filter(
+        reference=f"sale:{sale.pk}", transaction_type=LoyaltyTransaction.EARN
+    ).first()
+    if earn is None:
+        return
+    loyalty = earn.customer_loyalty
+    loyalty.points_balance -= earn.points
+    loyalty.save(update_fields=["points_balance"])
+    earn.delete()
+
+
 def adjust_points(customer_loyalty, points, transaction_type, note="", user=None):
     """Manually earn/redeem/adjust points for a customer. `points` should already carry
     the correct sign (negative for redemptions/downward adjustments)."""
