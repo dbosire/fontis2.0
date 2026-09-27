@@ -10,10 +10,10 @@ from django.db.models import Max, Sum
 from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import DeleteView, ListView
 
 from core.exports import build_xlsx, render_pdf
 from core.mixins import ModulePermissionRequiredMixin
@@ -404,3 +404,31 @@ class CustomerCreditDetailView(ViewDebtsMixin, View):
             "entries": entries,
             "balance": round(balance, 2),
         })
+
+
+class CustomerCreditDeleteView(EditDebtsMixin, DeleteView):
+    """Removes a single CustomerCredit ledger entry — e.g. a mistakenly recorded
+    overpayment/prepayment. Deleting an "Applied to debt" (negative) entry only
+    restores that amount to the customer's credit balance; it does NOT reverse the
+    DebtPayment(CREDIT) or un-settle the Sale it was applied to — those are separate
+    records this doesn't touch, so the confirm page calls that out explicitly."""
+
+    model = CustomerCredit
+    template_name = "core/components/confirm_delete.html"
+
+    def get_success_url(self):
+        return f"{reverse('debts:credit_detail')}?customer={self.object.customer_name}"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["cancel_url"] = self.get_success_url()
+        if self.object.source == CustomerCredit.APPLIED:
+            ctx["extra_warning"] = (
+                "This entry was applied to a sale's balance — deleting it restores the amount to this "
+                "customer's credit balance but does not reopen or un-settle that sale."
+            )
+        return ctx
+
+    def form_valid(self, form):
+        messages.success(self.request, "Credit entry deleted.")
+        return super().form_valid(form)

@@ -31,13 +31,17 @@ urlpatterns = [
 
     path("leave/", views.LeaveRequestListView.as_view(), name="leave"),
     path("leave/add/", views.LeaveRequestCreateView.as_view(), name="leave_add"),
-    path("leave/<int:pk>/<str:decision>/", views.LeaveRequestDecisionView.as_view(), name="leave_decision"),
+    # delete/ must be listed before <str:decision>/ — a bare <str:> converter
+    # matches the literal "delete" segment too, so the more specific pattern has to
+    # come first or Django's first-match-wins resolution never reaches it.
     path("leave/<int:pk>/delete/", views.LeaveRequestDeleteView.as_view(), name="leave_delete"),
+    path("leave/<int:pk>/<str:decision>/", views.LeaveRequestDecisionView.as_view(), name="leave_decision"),
 
     path("payroll/", views.PayrollListView.as_view(), name="payroll"),
     path("payroll/generate/", views.PayrollGenerateView.as_view(), name="payroll_generate"),
-    path("payroll/<int:pk>/<str:status>/", views.PayrollStatusView.as_view(), name="payroll_status"),
+    # Same ordering requirement as leave_delete above — delete/ must come first.
     path("payroll/<int:pk>/delete/", views.PayrollDeleteView.as_view(), name="payroll_delete"),
+    path("payroll/<int:pk>/<str:status>/", views.PayrollStatusView.as_view(), name="payroll_status"),
 
     path("performance/", views.PerformanceReviewListView.as_view(), name="performance"),
     path("performance/add/", views.PerformanceReviewCreateView.as_view(), name="performance_add"),

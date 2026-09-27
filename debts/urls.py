@@ -17,4 +17,5 @@ urlpatterns = [
     path("prepayment/", views.PrepaymentCreateView.as_view(), name="prepayment_add"),
     path("credit/", views.CustomerCreditListView.as_view(), name="credit_list"),
     path("credit/detail/", views.CustomerCreditDetailView.as_view(), name="credit_detail"),
+    path("credit/<int:pk>/delete/", views.CustomerCreditDeleteView.as_view(), name="credit_delete"),
 ]

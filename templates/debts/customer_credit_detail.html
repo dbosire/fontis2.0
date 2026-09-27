@@ -22,6 +22,7 @@
                     <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Sale</th>
                     <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Notes</th>
                     <th class="px-5 py-2 text-right font-medium text-gray-500 dark:text-slate-400">Amount</th>
+                    <th class="px-5 py-2"></th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
@@ -34,6 +35,9 @@
                     </td>
                     <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ entry.notes|default:"—" }}</td>
                     <td class="px-5 py-2 text-right font-medium {% if entry.amount > 0 %}text-green-600{% else %}text-red-600{% endif %}">{{ entry.amount|floatformat:2 }}</td>
+                    <td class="px-5 py-2 text-right">
+                        <a href="{% url 'debts:credit_delete' entry.pk %}" class="text-red-600 hover:underline">Delete</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
