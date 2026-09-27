@@ -90,16 +90,26 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             "count": today_sales.count(),
         }
 
-        # 2b. Debts paid today — money collected today against a debt that originated
-        # on an EARLIER day (excludes same-day sales that got paid same-day, which are
-        # already counted above as ordinary Cash/M-Pesa sales, not "debts"). Credit
-        # payments are excluded — consuming existing credit isn't new money collected.
-        debts_paid_today = DebtPayment.objects.filter(payment_date=today).exclude(sale__date_created__date=today)
+        # 2b. Debts paid today — money collected today against a debt, whether it
+        # originated on an earlier day or is a same-day PARTIAL sale's cash/M-Pesa
+        # portion. A same-day sale is excluded only once record_debt_payment has
+        # flipped it to CASH/MPESA status (a full same-day settlement — that money
+        # is already counted above in today_cash/today_mpesa). A same-day sale still
+        # sitting at PARTIAL is NOT excluded: today_cash/today_mpesa never count it
+        # (its status isn't CASH/MPESA), so skipping it here too would silently drop
+        # a same-day partial payment's cash/M-Pesa from today's totals entirely —
+        # this was exactly that bug. Credit payments are excluded — consuming
+        # existing credit isn't new money collected.
+        debts_paid_today_base = DebtPayment.objects.filter(payment_date=today)
         ctx["debts_paid_today_cash"] = (
-            debts_paid_today.filter(payment_method=DebtPayment.CASH).aggregate(total=Sum("amount"))["total"] or 0
+            debts_paid_today_base.filter(payment_method=DebtPayment.CASH)
+            .exclude(sale__date_created__date=today, sale__status=Sale.CASH)
+            .aggregate(total=Sum("amount"))["total"] or 0
         )
         ctx["debts_paid_today_mpesa"] = (
-            debts_paid_today.filter(payment_method=DebtPayment.MPESA).aggregate(total=Sum("amount"))["total"] or 0
+            debts_paid_today_base.filter(payment_method=DebtPayment.MPESA)
+            .exclude(sale__date_created__date=today, sale__status=Sale.MPESA)
+            .aggregate(total=Sum("amount"))["total"] or 0
         )
 
         # 3a. Monthly summary — last 6 months of sales totals

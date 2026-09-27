@@ -11,15 +11,26 @@ from sales.models import Sale
 from .models import CashDepositAllocation
 
 
+_SETTLED_SALE_STATUS = {DebtPayment.CASH: Sale.CASH, DebtPayment.MPESA: Sale.MPESA}
+
+
 def _debts_paid(date_, method):
-    """DebtPayment rows settling a genuinely pre-existing debt — the underlying Sale
-    wasn't created the same day (see reports/views.py's "Debts Paid Today" card,
-    which uses the identical definition). CREDIT-method payments are never included:
-    consuming existing credit isn't new cash or M-Pesa money changing hands."""
-    return (
-        DebtPayment.objects.filter(payment_date=date_, payment_method=method)
-        .exclude(sale__date_created__date=date_)
-    )
+    """DebtPayment rows carrying real cash/M-Pesa collected on `date_` that isn't
+    already counted by expected_cash/expected_mpesa's Sale-status sum (see
+    reports/views.py's "Debts Paid Today" card, which uses the identical
+    definition). A same-day sale is excluded only once record_debt_payment has
+    flipped it to CASH/MPESA status (a full same-day settlement — that money is
+    already in the Sale-status sum). A same-day sale still sitting at PARTIAL is NOT
+    excluded: its status never matches CASH/MPESA, so the Sale-status sum never
+    counts it — excluding it here too would silently drop a same-day partial
+    payment's cash/M-Pesa from the day's totals entirely. CREDIT-method payments are
+    never included: consuming existing credit isn't new cash or M-Pesa money
+    changing hands."""
+    qs = DebtPayment.objects.filter(payment_date=date_, payment_method=method)
+    settled_status = _SETTLED_SALE_STATUS.get(method)
+    if settled_status is not None:
+        qs = qs.exclude(sale__date_created__date=date_, sale__status=settled_status)
+    return qs
 
 
 def expected_cash(date_):
