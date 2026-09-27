@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}System Health{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+    <div>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">System Health &amp; Backups</h2>
+        <p class="text-xs text-gray-500 dark:text-slate-400">Django {{ django_version }}</p>
+    </div>
+    {% if request.user.is_superuser %}
+    <form method="post" action="{% url 'system_info:backup_now' %}">
+        {% csrf_token %}
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Back up now</button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Checks</h3>
+        <dl class="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+            {% for label, check in checks.items %}
+            <div class="flex items-center justify-between gap-3 py-2">
+                <dt class="flex items-center gap-2 text-gray-700 dark:text-slate-300">
+                    {% if check.ok %}
+                    <svg class="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                    {% else %}
+                    <svg class="h-4 w-4 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.28 11.18c.75 1.334-.213 2.98-1.742 2.98H3.72c-1.53 0-2.492-1.646-1.743-2.98l6.28-11.18zM11 14a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V7a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                    {% endif %}
+                    {{ label }}
+                </dt>
+                <dd class="text-gray-500 dark:text-slate-400 text-right">{{ check.detail }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Operations</h3>
+        <dl class="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
+            {% for label, value in operations.items %}
+            <div class="flex items-center justify-between gap-3 py-2">
+                <dt class="text-gray-700 dark:text-slate-300">{{ label }}</dt>
+                <dd class="text-gray-900 dark:text-white font-medium">{{ value }}</dd>
+            </div>
+            {% endfor %}
+            <div class="flex items-center justify-between gap-3 py-2">
+                <dt class="text-gray-700 dark:text-slate-300">Disk</dt>
+                <dd class="text-gray-900 dark:text-white font-medium">{{ disk.free_gb }} GB free of {{ disk.total_gb }} GB ({{ disk.used_pct }}% used)</dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto" x-data="{ openRun: null }">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700">Scheduler runs</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for run in runs %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ run.task }}</td>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ run.started_at|date:"d M Y H:i" }}</td>
+                    <td class="px-5 py-2">
+                        {% if run.status == "ok" %}{% status_badge "OK" "success" %}{% else %}{% status_badge "Failed" "danger" %}{% endif %}
+                    </td>
+                    <td class="px-5 py-2 text-right">
+                        <button type="button" @click="openRun = openRun === {{ run.pk }} ? null : {{ run.pk }}" class="text-blue-600 hover:underline text-xs">output</button>
+                    </td>
+                </tr>
+                <tr x-show="openRun === {{ run.pk }}" x-cloak>
+                    <td colspan="4" class="px-5 py-2 bg-gray-50 dark:bg-slate-800/60 text-xs text-gray-600 dark:text-slate-400 font-mono whitespace-pre-wrap">{{ run.output|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No scheduled runs recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+        <h3 class="px-5 py-3 text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700">Backups</h3>
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+            <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+                {% for b in backups %}
+                <tr>
+                    <td class="px-5 py-2 text-gray-700 dark:text-slate-300 whitespace-nowrap">{{ b.mtime|date:"d M Y H:i" }}</td>
+                    <td class="px-5 py-2 text-gray-500 dark:text-slate-400 font-mono text-xs">{{ b.name }}</td>
+                    <td class="px-5 py-2 text-right text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ b.size|filesizeformat }}</td>
+                    <td class="px-5 py-2 text-right">
+                        {% if request.user.is_superuser %}
+                        <a href="{% url 'system_info:backup_download' b.name %}" class="text-blue-600 hover:underline" title="Download">
+                            <svg class="h-4 w-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="px-5 py-6 text-center text-gray-400 dark:text-slate-500">No backups yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="px-5 py-3 text-xs text-gray-500 dark:text-slate-400 border-t border-gray-200 dark:border-slate-700">
+            Restore with <code class="font-mono bg-gray-100 dark:bg-slate-800 px-1 py-0.5 rounded">python manage.py restore_db &lt;file&gt; --yes</code> — see the README for the full procedure.
+        </p>
+    </div>
+</div>
+{% endblock %}

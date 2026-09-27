@@ -204,3 +204,26 @@ class LegacyTransactionAllocation(models.Model):
 
     def __str__(self):
         return f"{self.trans_id} -> Sale #{self.sale_id} (KES {self.amount:g})"
+
+
+class WebhookErrorLog(models.Model):
+    """A Daraja webhook call this app couldn't process — unparseable JSON, or an
+    unhandled exception in handle_stk_callback()/handle_c2b_confirmation(). Before
+    this model existed these only went to the server log (invisible without SSH
+    access); the System Health page's "Rejected callbacks (24h)" figure counts rows
+    here. The webhook views still always ACK Daraja regardless (see
+    mpesa/public_views.py) — logging a rejection here is purely for visibility, never
+    part of the response Daraja gets."""
+
+    STK, C2B = "stk_callback", "c2b_confirmation"
+    ENDPOINT_CHOICES = [(STK, "STK Callback"), (C2B, "C2B Confirmation")]
+
+    endpoint = models.CharField(max_length=20, choices=ENDPOINT_CHOICES)
+    detail = models.TextField(blank=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date_created"]
+
+    def __str__(self):
+        return f"{self.get_endpoint_display()} error @ {self.date_created:%Y-%m-%d %H:%M}"

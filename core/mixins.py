@@ -36,3 +36,20 @@ class ModulePermissionRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
             return super().handle_no_permission()
         messages.error(self.request, "You don't have permission to access that section.")
         return redirect(reverse("reports:dashboard"))
+
+
+class SuperuserRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Restricted further than ModulePermissionRequiredMixin ever goes: no Role can
+    grant this, only Django's own is_superuser flag. Reserved for things a
+    settings-editor role shouldn't get for free just by having "edit" on a module —
+    e.g. System Health's backup download, which is a full copy of every customer's
+    data."""
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            return super().handle_no_permission()
+        messages.error(self.request, "Only a superuser can access that.")
+        return redirect(reverse("reports:dashboard"))

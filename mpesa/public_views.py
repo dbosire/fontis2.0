@@ -8,7 +8,7 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from .models import PaymentLink, STKPushAttempt
+from .models import PaymentLink, STKPushAttempt, WebhookErrorLog
 from .services.daraja import DarajaError, MPESA_TILL_NUMBER, initiate_stk_push, normalize_phone_number
 from .services.reconciliation import handle_c2b_confirmation, handle_stk_callback
 
@@ -104,12 +104,16 @@ class STKCallbackView(View):
             payload = json.loads(request.body)
         except (ValueError, TypeError):
             logger.error("mpesa: unparseable STK callback body: %r", request.body[:2000])
+            WebhookErrorLog.objects.create(
+                endpoint=WebhookErrorLog.STK, detail=f"Unparseable body: {request.body[:500]!r}",
+            )
             payload = None
         if payload is not None:
             try:
                 handle_stk_callback(payload)
-            except Exception:
+            except Exception as exc:
                 logger.exception("mpesa: error handling STK callback")
+                WebhookErrorLog.objects.create(endpoint=WebhookErrorLog.STK, detail=str(exc)[:2000])
         # Always ack — Daraja retries aggressively on anything else.
         return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
 
@@ -128,10 +132,14 @@ class C2BConfirmationView(View):
             payload = json.loads(request.body)
         except (ValueError, TypeError):
             logger.error("mpesa: unparseable C2B confirmation body: %r", request.body[:2000])
+            WebhookErrorLog.objects.create(
+                endpoint=WebhookErrorLog.C2B, detail=f"Unparseable body: {request.body[:500]!r}",
+            )
             payload = None
         if payload is not None:
             try:
                 handle_c2b_confirmation(payload)
-            except Exception:
+            except Exception as exc:
                 logger.exception("mpesa: error handling C2B confirmation")
+                WebhookErrorLog.objects.create(endpoint=WebhookErrorLog.C2B, detail=str(exc)[:2000])
         return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})

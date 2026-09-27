@@ -322,8 +322,14 @@
     </div>
 
     <a href="{% url 'system_info:edit' %}"
-       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] mt-2 border-t border-slate-800 pt-4 transition-colors {% if app_name == 'system_info' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] mt-2 border-t border-slate-800 pt-4 transition-colors {% if app_name == 'system_info' and url_name == 'edit' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "cog" %} Settings
     </a>
+    {% if request.user.is_superuser %}
+    <a href="{% url 'system_info:health' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'system_info' and url_name == 'health' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "cpu" %} System Health
+    </a>
+    {% endif %}
 </nav>
 {% endwith %}
