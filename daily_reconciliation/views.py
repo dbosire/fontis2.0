@@ -100,6 +100,9 @@ class DailyReconciliationListView(ViewReconciliationMixin, ListView):
     context_object_name = "records"
     paginate_by = 30
 
+    def get_queryset(self):
+        return DailyReconciliation.objects.prefetch_related("deposits")
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         for record in ctx["records"]:
