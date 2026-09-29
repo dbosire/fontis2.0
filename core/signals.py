@@ -2,10 +2,11 @@ from django.contrib.auth.signals import user_logged_in, user_logged_out, user_lo
 from django.dispatch import receiver
 
 from .models import ActivityLog
+from .utils import get_client_ip
 
 
 def _client_ip(request):
-    return request.META.get("REMOTE_ADDR") if request else None
+    return get_client_ip(request) if request else None
 
 
 @receiver(user_logged_in)

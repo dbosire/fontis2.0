@@ -1,4 +1,5 @@
 from .models import ActivityLog
+from .utils import get_client_ip
 
 MUTATING_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -41,5 +42,5 @@ class ActivityLogMiddleware:
             module=(match.app_name if match else "") or "",
             view_name=(match.view_name if match else "") or "",
             status_code=response.status_code,
-            ip_address=request.META.get("REMOTE_ADDR"),
+            ip_address=get_client_ip(request),
         )
