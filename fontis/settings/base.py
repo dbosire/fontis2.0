@@ -79,6 +79,7 @@ TEMPLATES = [
                 "django.template.context_processors.media",
                 "system_info.context_processors.site_settings",
                 "inventory.context_processors.inventory_alerts",
+                "core.context_processors.visible_modules",
             ],
         },
     },

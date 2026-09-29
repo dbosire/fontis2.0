@@ -9,7 +9,7 @@ from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 
 from core.exports import build_xlsx
-from core.mixins import ModulePermissionRequiredMixin
+from core.mixins import ModulePermissionRequiredMixin, has_module_permission
 
 from .forms import (
     AccountForm, AccountMappingForm, BankAccountForm, BankStatementLineForm,
@@ -272,6 +272,12 @@ class BankAccountCreateView(EditFinanceMixin, CreateView):
 
 
 class BankStatementLineListView(ViewFinanceMixin, View):
+    """Gated at "view" for the class — listing statement lines (and seeing the add
+    form) is legitimately something a view-only finance role can do. But actually
+    submitting that form creates a real BankStatementLine, so post() additionally
+    requires "edit" — without this, any view-only role could add statement lines,
+    which is exactly the "view-only role can edit" bug this check closes."""
+
     template_name = "finance/bank_statement_lines.html"
 
     def get(self, request, pk):
@@ -281,6 +287,9 @@ class BankStatementLineListView(ViewFinanceMixin, View):
         return render(request, self.template_name, {"bank_account": bank_account, "lines": lines, "form": form})
 
     def post(self, request, pk):
+        if not has_module_permission(request.user, "finance", "edit"):
+            messages.error(request, "You don't have permission to do that.")
+            return redirect(reverse("finance:bank_statement_lines", args=[pk]))
         bank_account = get_object_or_404(BankAccount, pk=pk)
         form = BankStatementLineForm(request.POST)
         if form.is_valid():

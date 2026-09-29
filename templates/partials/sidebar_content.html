@@ -18,36 +18,51 @@
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'reports' and url_name == 'dashboard' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "dashboard" %} Dashboard
     </a>
+    {% if 'sales' in visible_modules %}
     <a href="{% url 'sales:list' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'sales' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "droplet" %} Sales
     </a>
+    {% endif %}
+    {% if 'contacts' in visible_modules %}
     <a href="{% url 'contacts:list' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'contacts' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "contacts" %} Customer Contacts
     </a>
+    {% endif %}
+    {% if 'commissions' in visible_modules %}
     <a href="{% url 'commissions:list' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'commissions' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "star" %} Commissions
     </a>
+    {% endif %}
+    {% if 'maintenance' in visible_modules %}
     <a href="{% url 'maintenance:list' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'maintenance' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "tag" %} Pricing
     </a>
+    {% endif %}
+    {% if 'reports' in visible_modules %}
     <a href="{% url 'reports:sales_report' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'reports' and url_name == 'sales_report' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "chart" %} Sales Reports
     </a>
+    {% endif %}
+    {% if 'water_test' in visible_modules %}
     <a href="{% url 'water_test:list' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'water_test' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "beaker" %} Lab Test
     </a>
+    {% endif %}
+    {% if 'daily_reconciliation' in visible_modules %}
     <a href="{% url 'daily_reconciliation:today' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'daily_reconciliation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "arrow-path" %} Daily Reconciliation
     </a>
+    {% endif %}
 
     {# ---- Collapsible groups (multi-link sections) — collapsed by default, auto-open on the active section, instant show/hide (no CSS transition — see mobile sidebar note) ---- #}
+    {% if 'debts' in visible_modules %}
     <div class="pt-2 mt-2 border-t border-slate-800" x-data="{ open: {% if app_name == 'debts' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'debts' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "exclamation" "h-4 w-4" %} Debts Management</span>
@@ -68,7 +83,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'mpesa' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'mpesa' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'mpesa' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "phone" "h-4 w-4" %} M-Pesa</span>
@@ -89,7 +106,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'inventory' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'inventory' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'inventory' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "box" "h-4 w-4" %} Inventory</span>
@@ -122,7 +141,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'employees' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'employees' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'employees' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "id-card" "h-4 w-4" %} Employees</span>
@@ -173,7 +194,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'crm' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'crm' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'crm' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "chat-bubble" "h-4 w-4" %} CRM</span>
@@ -210,7 +233,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'finance' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'finance' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'finance' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "banknotes" "h-4 w-4" %} Finance</span>
@@ -275,7 +300,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'expenses' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'expenses' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'expenses' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "receipt" "h-4 w-4" %} Expenses</span>
@@ -296,7 +323,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'purchasing' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'purchasing' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'purchasing' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "truck" "h-4 w-4" %} Purchasing</span>
@@ -313,7 +342,9 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'ml_integration' in visible_modules %}
     <div class="border-t border-slate-800" x-data="{ open: {% if app_name == 'ml_integration' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'ml_integration' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
             <span class="flex items-center gap-3">{% nav_icon "cpu" "h-4 w-4" %} Data Analytics</span>
@@ -330,11 +361,14 @@
             </a>
         </div>
     </div>
+    {% endif %}
 
+    {% if 'system_info' in visible_modules %}
     <a href="{% url 'system_info:edit' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] mt-2 border-t border-slate-800 pt-4 transition-colors {% if app_name == 'system_info' and url_name == 'edit' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "cog" %} Settings
     </a>
+    {% endif %}
     {% if request.user.is_superuser %}
     <a href="{% url 'system_info:health' %}"
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'system_info' and url_name == 'health' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
