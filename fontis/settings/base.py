@@ -62,6 +62,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "accounts.middleware.MustChangePasswordMiddleware",
+    "core.middleware.ActivityLogMiddleware",
 ]
 
 ROOT_URLCONF = "fontis.urls"

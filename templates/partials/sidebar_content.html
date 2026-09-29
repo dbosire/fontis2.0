@@ -374,6 +374,10 @@
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'system_info' and url_name == 'health' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "cpu" %} System Health
     </a>
+    <a href="{% url 'core:activity_log' %}"
+       class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'core' and url_name == 'activity_log' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+        {% nav_icon "clock" %} Activity Log
+    </a>
     {% endif %}
 </nav>
 {% endwith %}

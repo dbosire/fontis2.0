@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Activity Log{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Activity Log" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">User</label>
+            <input type="text" name="username" value="{{ filters.username }}" placeholder="Username…" autocomplete="off"
+                   class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Event</label>
+            <select name="event_type" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in event_choices %}
+                    <option value="{{ value }}" {% if filters.event_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Module</label>
+            <select name="module" class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for m in module_choices %}
+                    <option value="{{ m }}" {% if filters.module == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">From</label>
+            <input type="date" name="date_from" value="{{ filters.date_from }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">To</label>
+            <input type="date" name="date_to" value="{{ filters.date_to }}"
+                   class="rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+            {% if filters.username or filters.event_type or filters.module or filters.date_from or filters.date_to %}
+                <a href="{% url 'core:activity_log' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">User</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Event</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Module</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Path</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">IP</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for log in logs %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ log.date_created|date:"d M Y H:i:s" }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">{{ log.username|default:"—" }}</td>
+                <td class="px-5 py-2">
+                    {% if log.event_type == "login" %}{% status_badge "Login" "success" %}
+                    {% elif log.event_type == "logout" %}{% status_badge "Logout" "neutral" %}
+                    {% elif log.event_type == "login_failed" %}{% status_badge "Failed login" "danger" %}
+                    {% else %}{% status_badge "Action" "info" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ log.module|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 font-mono text-xs">
+                    {% if log.method %}{{ log.method }} {% endif %}{{ log.path|default:"—" }}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ log.status_code|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ log.ip_address|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No activity recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="flex justify-center gap-2 mt-4 text-sm">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Previous</a>{% endif %}
+    <span class="px-3 py-1 text-gray-500 dark:text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

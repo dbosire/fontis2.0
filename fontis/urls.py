@@ -25,6 +25,7 @@ urlpatterns = [
     path("commissions/", include("commissions.urls")),
     path("reconciliation/", include("daily_reconciliation.urls")),
     path("system-info/", include("system_info.urls")),
+    path("core/", include("core.urls")),
     path("ml/", include("ml_integration.urls")),
 ]
 
