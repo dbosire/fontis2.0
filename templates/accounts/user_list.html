@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Users{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Users" add_url="accounts:user_add" add_label="Add User" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Search</label>
+            <input type="text" name="q" value="{{ q }}" placeholder="Username…" autocomplete="off"
+                   class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Search</button>
+            {% if q %}<a href="{% url 'accounts:user_list' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>{% endif %}
+        </div>
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Username</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Name</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for u in users %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">{{ u.username }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ u.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ u.employee.get_full_name|default:"—" }}</td>
+                <td class="px-5 py-2 space-x-1">
+                    {% if u.is_active %}{% status_badge "Active" "success" %}{% else %}{% status_badge "Inactive" "neutral" %}{% endif %}
+                    {% if u.is_superuser %}{% status_badge "Superuser" "info" %}{% endif %}
+                    {% if u.must_change_password %}{% status_badge "Pending first login" "warning" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    <a href="{% url 'accounts:user_edit' u.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <form method="post" action="{% url 'accounts:user_reset_password' u.pk %}" class="inline" onsubmit="return confirm('Reset the password for {{ u.username }}? A new temporary password will be generated.');">
+                        {% csrf_token %}
+                        <button type="submit" class="text-amber-600 hover:underline">Reset Password</button>
+                    </form>
+                    <a href="{% url 'accounts:user_delete' u.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">{% if q %}No users match “{{ q }}”.{% else %}No users yet.{% endif %}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
+from django.db.models import Q
 
 from .models import User
 
@@ -35,6 +36,43 @@ class ProfileForm(forms.ModelForm):
             "lastname": forms.TextInput(attrs={"class": TEXT_INPUT_CLASSES}),
             "username": forms.TextInput(attrs={"class": TEXT_INPUT_CLASSES}),
         }
+
+
+class UserForm(forms.ModelForm):
+    """Shared by create and edit — never carries a password field. A new user gets
+    an auto-generated temporary password (see accounts/views.py::UserCreateView,
+    matching accounts/management/commands/reset_all_passwords.py's own philosophy
+    of never letting an admin silently set a password the user themselves never
+    sees); resetting one later is its own dedicated action, not a field buried in
+    this form."""
+
+    employee = forms.ModelChoiceField(
+        queryset=None, required=False,
+        help_text="Optionally link this login to an employee record.",
+        widget=forms.Select(attrs={"class": TEXT_INPUT_CLASSES}),
+    )
+
+    class Meta:
+        model = User
+        fields = ["username", "firstname", "lastname", "is_active", "is_superuser"]
+        widgets = {
+            "username": forms.TextInput(attrs={"class": TEXT_INPUT_CLASSES}),
+            "firstname": forms.TextInput(attrs={"class": TEXT_INPUT_CLASSES}),
+            "lastname": forms.TextInput(attrs={"class": TEXT_INPUT_CLASSES}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from employees.models import Employee
+
+        # An employee already linked to a DIFFERENT user must stay out of the
+        # choices (one login per employee) — except the one already linked to
+        # *this* user being edited, which needs to remain selectable/pre-filled.
+        current = self.instance.employee if self.instance.pk and hasattr(self.instance, "employee") else None
+        qs = Employee.objects.filter(Q(user__isnull=True) | Q(pk=current.pk if current else None))
+        self.fields["employee"].queryset = qs.order_by("first_name", "last_name")
+        if current:
+            self.fields["employee"].initial = current.pk
 
 
 class SetNewPasswordForm(forms.Form):

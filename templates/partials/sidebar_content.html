@@ -137,6 +137,12 @@
                class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'departments' or url_name == 'department_add' or url_name == 'department_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 Departments
             </a>
+            {% if request.user.is_superuser %}
+            <a href="{% url 'accounts:user_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'accounts' and url_name == 'user_list' or url_name == 'user_add' or url_name == 'user_edit' or url_name == 'user_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Users
+            </a>
+            {% endif %}
             <a href="{% url 'employees:roles' %}"
                class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'employees' and url_name == 'roles' or url_name == 'role_add' or url_name == 'role_edit' or url_name == 'role_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
                 Roles &amp; Permissions

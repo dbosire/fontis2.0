@@ -20,6 +20,16 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    # PermissionsMixin bundles is_superuser with groups/user_permissions M2M fields —
+    # this app's own Role/RolePermission system (see employees.models) is what
+    # actually drives access control, Django's Group/Permission is never used. Nulled
+    # out here rather than left as inherited fields: `users` is a managed=False
+    # legacy table with no users_groups/users_user_permissions join tables to back
+    # them, so leaving them in place makes User.delete() (and anything else that
+    # touches those M2Ms) fail against a table that was never created.
+    groups = None
+    user_permissions = None
+
     TYPE_ADMIN = 1
     TYPE_CUSTOMER_LEGACY = 2  # kept for row compatibility only; no active login path uses this
     TYPE_CHOICES = [(TYPE_ADMIN, "Admin"), (TYPE_CUSTOMER_LEGACY, "Customer (legacy)")]
