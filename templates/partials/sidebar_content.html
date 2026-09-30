@@ -65,7 +65,7 @@
     {% if 'debts' in visible_modules %}
     <div class="pt-2 mt-2 border-t border-slate-800" x-data="{ open: {% if app_name == 'debts' %}true{% else %}false{% endif %} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide {% if app_name == 'debts' %}text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
-            <span class="flex items-center gap-3">{% nav_icon "exclamation" "h-4 w-4" %} Debts Management</span>
+            <span class="flex items-center gap-3">{% nav_icon "exclamation" "h-4 w-4" %} Debts</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
         </button>
         <div x-show="open" x-cloak>
