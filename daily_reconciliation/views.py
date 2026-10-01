@@ -10,12 +10,13 @@ from django.views.generic import DetailView, ListView
 from core.mixins import ModulePermissionRequiredMixin
 
 from .forms import DailyReconciliationForm
-from .models import DailyReconciliation
+from .models import CashDepositAllocation, DailyReconciliation
 from .services import (
     allocate_cash_deposit,
     candidate_deposit_transactions,
     deposit_variance,
     deposited_total,
+    dissociate_cash_deposit,
     search_deposit_transactions,
     summary_for,
     valid_deposit_transaction,
@@ -145,6 +146,20 @@ class CashDepositAllocateView(EditReconciliationMixin, View):
                 messages.success(request, "Cash deposit allocated.")
             except ValueError as exc:
                 messages.error(request, str(exc))
+        next_url = request.POST.get("next") or reverse("daily_reconciliation:detail", args=[record.pk])
+        return redirect(next_url)
+
+
+class CashDepositDissociateView(EditReconciliationMixin, View):
+    """Undoes a cash-deposit allocation — e.g. staff matched the wrong M-Pesa
+    transaction or amount to this day. Frees the claimed amount back onto the
+    transaction for correct reallocation; the day's cash count itself is untouched."""
+
+    def post(self, request, pk, deposit_pk):
+        record = get_object_or_404(DailyReconciliation, pk=pk)
+        deposit = get_object_or_404(CashDepositAllocation, pk=deposit_pk, reconciliation=record)
+        dissociate_cash_deposit(deposit)
+        messages.success(request, "Cash deposit allocation removed.")
         next_url = request.POST.get("next") or reverse("daily_reconciliation:detail", args=[record.pk])
         return redirect(next_url)
 

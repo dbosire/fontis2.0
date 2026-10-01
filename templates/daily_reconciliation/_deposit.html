@@ -22,7 +22,15 @@ services.py matched by amount + timing, or search for any other transaction.
                     <p class="text-gray-900 dark:text-white font-medium">{{ deposit.trans_id }} — {{ deposit.amount|floatformat:2 }}</p>
                     <p class="text-xs text-gray-500 dark:text-slate-400">{{ deposit.date_created|date:"d M Y, H:i" }}</p>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-slate-400">Deposited by {{ deposit.depositor_name }} &bull; Allocated by {{ deposit.allocated_by.get_full_name|default:"—" }}</p>
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-xs text-gray-500 dark:text-slate-400">Deposited by {{ deposit.depositor_name }} &bull; Allocated by {{ deposit.allocated_by.get_full_name|default:"—" }}</p>
+                    <form method="post" action="{% url 'daily_reconciliation:dissociate_deposit' record.pk deposit.pk %}"
+                          onsubmit="return confirm('Remove this allocation? KES {{ deposit.amount|floatformat:2 }} from {{ deposit.trans_id }} will become unclaimed again and can be reallocated.');">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="text-xs text-red-600 hover:underline shrink-0">Dissociate</button>
+                    </form>
+                </div>
             </div>
             {% endfor %}
         </div>

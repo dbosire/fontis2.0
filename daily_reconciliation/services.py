@@ -289,3 +289,13 @@ def allocate_cash_deposit(record, trans_id, depositor_name, amount, *, user=None
         reconciliation=record, trans_id=trans_id, amount=amount,
         depositor_name=depositor_name, allocated_by=user,
     )
+
+
+def dissociate_cash_deposit(deposit):
+    """Undoes a cash-deposit allocation — e.g. staff matched the wrong M-Pesa
+    transaction, or the wrong day, or need to split it differently. Just deletes
+    the row: unlike debt settlement, an allocation here never fed the GL or
+    anything else that needs unwinding, and deposited_total()/deposit_variance()/
+    deposit_available_amount() are all computed live, so the freed amount becomes
+    available for reallocation immediately."""
+    deposit.delete()
