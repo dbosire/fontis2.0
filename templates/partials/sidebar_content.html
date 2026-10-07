@@ -19,7 +19,7 @@
     </a>
 
     {# ==================== OPERATIONS ==================== #}
-    {% if 'sales' in visible_modules or 'commissions' in visible_modules or 'maintenance' in visible_modules or 'reports' in visible_modules or 'water_test' in visible_modules or 'daily_reconciliation' in visible_modules %}
+    {% if 'sales' in visible_modules or 'commissions' in visible_modules or 'maintenance' in visible_modules or 'reports' in visible_modules or 'water_test' in visible_modules or 'daily_reconciliation' in visible_modules or 'compliance' in visible_modules %}
     <div class="px-5 pt-4 pb-1.5 mt-2 border-t border-slate-800 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">Operations</div>
     {% endif %}
     {% if 'sales' in visible_modules %}
@@ -57,6 +57,41 @@
        class="flex items-center gap-3 px-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'daily_reconciliation' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
         {% nav_icon "arrow-path" %} Daily Reconciliation
     </a>
+    {% endif %}
+
+    {% if 'compliance' in visible_modules %}
+    <div x-data="{ open: {% if app_name == 'compliance' %}true{% else %}false{% endif %} }">
+        <button type="button" @click="open = !open" class="w-full flex items-center justify-between gap-3 px-5 py-2 rounded-md mx-2 text-xs font-semibold uppercase tracking-wide transition-colors {% if app_name == 'compliance' %}text-white{% else %}text-slate-500 hover:bg-slate-800 hover:text-slate-300{% endif %}" style="width: calc(100% - 1rem)">
+            <span class="flex items-center gap-3">{% nav_icon "shield-check" "h-4 w-4" %} Compliance</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" :class="open ? 'rotate-90' : ''" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+        </button>
+        <div x-show="open" x-cloak>
+            <a href="{% url 'compliance:dashboard' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'dashboard' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Overview
+            </a>
+            <a href="{% url 'compliance:document_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'document_list' or url_name == 'document_add' or url_name == 'document_edit' or url_name == 'document_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Licences &amp; Permits
+            </a>
+            <a href="{% url 'compliance:procedure_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'procedure_list' or url_name == 'procedure_detail' or url_name == 'procedure_add' or url_name == 'procedure_edit' or url_name == 'procedure_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Procedures
+            </a>
+            <a href="{% url 'compliance:medical_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'medical_list' or url_name == 'medical_add' or url_name == 'medical_edit' or url_name == 'medical_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Medical Certificates
+            </a>
+            <a href="{% url 'compliance:equipment_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'equipment_list' or url_name == 'equipment_add' or url_name == 'equipment_detail' or url_name == 'equipment_edit' or url_name == 'equipment_delete' or url_name == 'calibration_add' or url_name == 'calibration_edit' or url_name == 'calibration_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                Calibration
+            </a>
+            <a href="{% url 'compliance:personnel_list' %}"
+               class="flex items-center gap-3 pl-9 pr-5 py-2 rounded-md mx-2 w-[calc(100%-1rem)] transition-colors {% if app_name == 'compliance' and url_name == 'personnel_list' or url_name == 'personnel_add' or url_name == 'personnel_edit' or url_name == 'personnel_delete' %}bg-blue-600 text-white{% else %}text-slate-300 hover:bg-slate-800 hover:text-white{% endif %}">
+                QC Personnel
+            </a>
+        </div>
+    </div>
     {% endif %}
 
     {# ==================== CUSTOMERS ==================== #}

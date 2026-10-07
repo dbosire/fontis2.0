@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load ui compliance_tags %}
+{% block page_title %}{{ procedure.code }}{% endblock %}
+{% block extra_head %}
+<style>
+    @media print {
+        aside, header, .no-print { display: none !important; }
+        html, body, main { height: auto !important; overflow: visible !important; background: #fff !important; }
+        main { padding: 0 !important; }
+        .procedure-sheet { box-shadow: none !important; border: none !important; background: #fff !important; color: #000 !important; }
+        .procedure-sheet * { color: #000 !important; border-color: #999 !important; background-color: transparent !important; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="no-print flex flex-wrap items-center justify-between gap-3 mb-4">
+    <a href="{% url 'compliance:procedure_list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:underline">&larr; All procedures</a>
+    <div class="flex items-center gap-3">
+        <button type="button" onclick="window.print()" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Print</button>
+        <a href="{% url 'compliance:procedure_edit' procedure.pk %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Edit</a>
+        {% if procedure.status != "approved" %}
+        <form method="post" action="{% url 'compliance:procedure_approve' procedure.pk %}" onsubmit="return confirm('Approve {{ procedure.code }} v{{ procedure.version }}? Confirm it has been reviewed and reflects how the plant actually operates.');">
+            {% csrf_token %}
+            <button type="submit" class="rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2">Approve</button>
+        </form>
+        {% endif %}
+        <a href="{% url 'compliance:procedure_delete' procedure.pk %}" class="text-sm text-red-600 hover:underline">Delete</a>
+    </div>
+</div>
+
+<article class="procedure-sheet max-w-4xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6 sm:p-8">
+    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">{{ fontis_site.short_name }} &bull; {{ procedure.get_category_display }}</p>
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white mt-1">{{ procedure.title }}</h2>
+
+    <table class="w-full text-sm mt-4 mb-2 border border-gray-200 dark:border-slate-700">
+        <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
+            <tr>
+                <th class="w-40 px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60">Document no.</th>
+                <td class="px-3 py-2">{{ procedure.code }}</td>
+                <th class="w-40 px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60 border-l border-gray-200 dark:border-slate-700">Version</th>
+                <td class="px-3 py-2">{{ procedure.version }}</td>
+            </tr>
+            <tr>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60">Status</th>
+                <td class="px-3 py-2">{% if procedure.status == "approved" %}Approved{% else %}DRAFT — not yet approved{% endif %}</td>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60 border-l border-gray-200 dark:border-slate-700">Effective date</th>
+                <td class="px-3 py-2">{{ procedure.effective_date|date:"d M Y"|default:"—" }}</td>
+            </tr>
+            <tr>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60">Owner</th>
+                <td class="px-3 py-2">{{ procedure.owner|default:"—" }}</td>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60 border-l border-gray-200 dark:border-slate-700">Next review</th>
+                <td class="px-3 py-2">{{ procedure.next_review_date|date:"d M Y"|default:"—" }}</td>
+            </tr>
+            <tr>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60">Approved by</th>
+                <td class="px-3 py-2">{{ procedure.approved_by|default:"—" }}</td>
+                <th class="px-3 py-2 text-left font-medium bg-gray-50 dark:bg-slate-800/60 border-l border-gray-200 dark:border-slate-700">Approved on</th>
+                <td class="px-3 py-2">{{ procedure.approved_date|date:"d M Y"|default:"—" }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="text-sm text-gray-800 dark:text-slate-200 leading-relaxed">
+        {{ procedure.content|procedure_body }}
+    </div>
+</article>
+
+{% if revisions %}
+<div class="no-print max-w-4xl mt-6">
+    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-2">Earlier versions</p>
+    <div class="space-y-2">
+        {% for revision in revisions %}
+        <details class="bg-white/90 dark:bg-slate-800/70 rounded-md border border-gray-200 dark:border-slate-700 px-4 py-2 text-sm">
+            <summary class="cursor-pointer text-gray-700 dark:text-slate-300">Version {{ revision.version }} — replaced {{ revision.date_created|date:"d M Y, H:i" }}{% if revision.saved_by %} by {{ revision.saved_by.get_full_name|default:revision.saved_by.username }}{% endif %}</summary>
+            <div class="mt-3 text-gray-700 dark:text-slate-300">{{ revision.content|procedure_body }}</div>
+        </details>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

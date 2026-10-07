@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_title %}{{ form_title }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ form_title }}</h2>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid sm:grid-cols-3 gap-4">
+            {% include "core/components/form_field.html" with field=form.code %}
+            <div class="sm:col-span-2">{% include "core/components/form_field.html" with field=form.title %}</div>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4">
+            {% include "core/components/form_field.html" with field=form.category %}
+            {% include "core/components/form_field.html" with field=form.version %}
+            {% include "core/components/form_field.html" with field=form.owner %}
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+            {% include "core/components/form_field.html" with field=form.effective_date %}
+            {% include "core/components/form_field.html" with field=form.next_review_date %}
+        </div>
+        {% include "core/components/form_field.html" with field=form.content %}
+        <p class="text-xs text-gray-500 dark:text-slate-400">
+            Formatting: <code>## Heading</code>, <code>### Sub-heading</code>, <code>- bullet</code>, <code>1. numbered step</code>,
+            <code>**bold**</code>, tables as <code>| Column | Column |</code> rows (first row is the header). Blank line starts a new paragraph.
+            Saving changed wording of an approved procedure returns it to draft for re-approval, and the previous wording is kept under "Earlier versions".
+        </p>
+        <div class="flex justify-end gap-3 pt-2">
+            <a href="{{ cancel_url }}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Save</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

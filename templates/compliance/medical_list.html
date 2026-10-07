@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load compliance_tags %}
+{% block page_title %}Medical Certificates{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Food Handlers' Medical Certificates" add_url="compliance:medical_add" add_label="Add Certificate" %}
+
+<p class="text-xs text-gray-500 dark:text-slate-400 mb-3">Every active employee marked as a food handler (tick or untick this on the employee's profile). Each is judged on their newest certificate.</p>
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto mb-8">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Department</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Certificate expires</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for row in rows %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">{{ row.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ row.employee.department.name|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ row.certificate.expiry_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2">{% expiry_badge row.status %}</td>
+                <td class="px-5 py-2 text-right whitespace-nowrap">
+                    <a href="{% url 'compliance:medical_add' %}?employee={{ row.employee.pk }}" class="text-blue-600 hover:underline">{% if row.certificate %}Renew{% else %}Add certificate{% endif %}</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No active food handlers. Mark employees as food handlers on their profile.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-2">All certificates on file</p>
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Certificate no.</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Issued</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Expires</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Facility</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for cert in certificates %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white">{{ cert.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ cert.certificate_number|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ cert.issued_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ cert.expiry_date|date:"d M Y" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ cert.issuing_facility|default:"—" }}</td>
+                <td class="px-5 py-2">{% expiry_badge cert.status %}</td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    {% if cert.file %}<a href="{% url 'compliance:file' 'medical' cert.pk %}" target="_blank" class="text-blue-600 hover:underline">View file</a>{% else %}<span class="text-xs text-amber-600">No file</span>{% endif %}
+                    <a href="{% url 'compliance:medical_edit' cert.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'compliance:medical_delete' cert.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No certificates recorded yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

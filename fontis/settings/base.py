@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "reports",
     "system_info",
     "ml_integration",
+    "compliance",
 ]
 
 MIDDLEWARE = [
@@ -81,6 +82,7 @@ TEMPLATES = [
                 "system_info.context_processors.site_settings",
                 "inventory.context_processors.inventory_alerts",
                 "core.context_processors.visible_modules",
+                "compliance.context_processors.compliance_alerts",
             ],
         },
     },
@@ -120,6 +122,10 @@ MEDIA_URL = "media/"
 # Reuse the existing PHP app's uploads/ directory in place (same files referenced by
 # system_info/users.avatar paths like "uploads/xxx.png") rather than duplicating assets.
 MEDIA_ROOT = BASE_DIR.parent / "fontis"
+
+# Private upload store for the Compliance module (licences, medical certificates, ...).
+# Never served directly — downloads go through a permission-checked view.
+COMPLIANCE_ROOT = config("COMPLIANCE_ROOT", default=BASE_DIR / "compliance_files")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -34,6 +34,7 @@ MODULE_CHOICES = [
     ("daily_reconciliation", "Daily Reconciliation"),
     ("ml_integration", "Data Analytics"),
     ("system_info", "Settings"),
+    ("compliance", "Compliance (KEBS)"),
 ]
 
 
@@ -104,6 +105,10 @@ class Employee(models.Model):
     date_hired = models.DateField()
     date_terminated = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=ACTIVE)
+    is_food_handler = models.BooleanField(
+        default=True,
+        help_text="Handles product or works in the production area — needs a valid medical certificate (see Compliance).",
+    )
 
     basic_salary = models.FloatField(default=0)
     bank_name = models.CharField(max_length=100, blank=True)

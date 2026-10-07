@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block page_title %}QC Personnel{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Quality Control Personnel" add_url="compliance:personnel_add" add_label="Add Document" %}
+<p class="text-xs text-gray-500 dark:text-slate-400 mb-3">Qualifications and evidence of employment for the staff who carry out quality control.</p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Employee</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Document</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Institution / employer</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Date</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for doc in documents %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">{{ doc.employee.get_full_name }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ doc.get_doc_type_display }}</td>
+                <td class="px-5 py-2 text-gray-700 dark:text-slate-300">{{ doc.title }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ doc.institution|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ doc.date_obtained|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    {% if doc.file %}<a href="{% url 'compliance:file' 'personnel' doc.pk %}" target="_blank" class="text-blue-600 hover:underline">View file</a>{% else %}<span class="text-xs text-amber-600">No file</span>{% endif %}
+                    <a href="{% url 'compliance:personnel_edit' doc.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'compliance:personnel_delete' doc.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No documents yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load compliance_tags %}
+{% block page_title %}Licences &amp; Permits{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Licences, Permits & Documents" add_url="compliance:document_add" add_label="Add Document" %}
+
+<form method="get" class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-4 mb-4">
+    <div class="flex flex-wrap items-end gap-3">
+        <div class="min-w-[240px]">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Type</label>
+            <select name="category" class="block w-full rounded-md border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">All</option>
+                {% for value, label in category_choices %}
+                <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Filter</button>
+        {% if selected_category %}<a href="{% url 'compliance:document_list' %}" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-sm font-medium px-4 py-2">Clear</a>{% endif %}
+    </div>
+</form>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Document</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Type</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Reference</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Issued</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Expires</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for doc in documents %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">
+                    {{ doc.title }}
+                    {% if doc.issuing_authority %}<span class="block text-xs font-normal text-gray-500 dark:text-slate-400">{{ doc.issuing_authority }}</span>{% endif %}
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ doc.get_category_display }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ doc.reference_number|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ doc.issue_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ doc.expiry_date|date:"d M Y"|default:"—" }}</td>
+                <td class="px-5 py-2">{% expiry_badge doc.status %}</td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    {% if doc.file %}<a href="{% url 'compliance:file' 'document' doc.pk %}" target="_blank" class="text-blue-600 hover:underline">View file</a>{% else %}<span class="text-xs text-amber-600">No file</span>{% endif %}
+                    <a href="{% url 'compliance:document_edit' doc.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                    <a href="{% url 'compliance:document_delete' doc.pk %}" class="text-red-600 hover:underline">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No documents yet. Add the Public Health Licence, Single Business Permit and the other papers KEBS asks for.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

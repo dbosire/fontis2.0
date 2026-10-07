@@ -59,7 +59,7 @@ class EmployeeForm(forms.ModelForm):
         fields = [
             "employee_number", "first_name", "last_name", "gender", "date_of_birth", "id_number",
             "phone", "email", "address", "department", "role", "employment_type", "date_hired",
-            "date_terminated", "status", "basic_salary", "bank_name", "bank_account_number",
+            "date_terminated", "status", "is_food_handler", "basic_salary", "bank_name", "bank_account_number",
             "kra_pin", "nssf_number", "nhif_number", "emergency_contact_name", "emergency_contact_phone",
         ]
         widgets = {
@@ -70,6 +70,7 @@ class EmployeeForm(forms.ModelForm):
             **_widgets("gender", "department", "role", "employment_type", "status", kind="select"),
             **_widgets("date_of_birth", "date_hired", "date_terminated", kind="date"),
             **_widgets("basic_salary", kind="number"),
+            "is_food_handler": forms.CheckboxInput(attrs={"class": "rounded border-gray-300"}),
         }
 
 

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Procedures{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="Procedures (SOPs)" add_url="compliance:procedure_add" add_label="Add Procedure" %}
+<p class="text-xs text-gray-500 dark:text-slate-400 mb-3">Controlled operating procedures, kept and printable from here. Review each one, adjust it to how the plant really operates, then approve it. Changing an approved procedure's wording sends it back for approval.</p>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">
+        <thead class="bg-gray-50 dark:bg-slate-800/60">
+            <tr>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Code</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Procedure</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Version</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Status</th>
+                <th class="px-5 py-2 text-left font-medium text-gray-500 dark:text-slate-400">Next review</th>
+                <th class="px-5 py-2"></th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-slate-800">
+            {% for p in procedures %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-slate-800/40">
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 font-mono">{{ p.code }}</td>
+                <td class="px-5 py-2 text-gray-900 dark:text-white font-medium">
+                    <a href="{% url 'compliance:procedure_detail' p.pk %}" class="hover:underline">{{ p.title }}</a>
+                    <span class="block text-xs font-normal text-gray-500 dark:text-slate-400">{{ p.get_category_display }}</span>
+                </td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400">{{ p.version }}</td>
+                <td class="px-5 py-2">{% if p.status == "approved" %}{% status_badge "Approved" "success" %}{% else %}{% status_badge "Draft" "warning" %}{% endif %}</td>
+                <td class="px-5 py-2 text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                    {{ p.next_review_date|date:"d M Y"|default:"—" }}
+                    {% if p.review_overdue %}{% status_badge "Overdue" "danger" %}{% endif %}
+                </td>
+                <td class="px-5 py-2 text-right space-x-3 whitespace-nowrap">
+                    <a href="{% url 'compliance:procedure_detail' p.pk %}" class="text-blue-600 hover:underline">Open</a>
+                    <a href="{% url 'compliance:procedure_edit' p.pk %}" class="text-blue-600 hover:underline">Edit</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="px-5 py-10 text-center text-gray-400 dark:text-slate-500">No procedures yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

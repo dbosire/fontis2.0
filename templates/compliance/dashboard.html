@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block page_title %}Compliance{% endblock %}
+{% block content %}
+{% include "core/components/page_header.html" with title="KEBS Compliance" %}
+
+<div class="grid gap-4 lg:grid-cols-3 mb-6">
+    <div class="lg:col-span-2 bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <div class="flex items-end justify-between mb-2">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400">Certification readiness</p>
+                <p class="text-3xl font-semibold text-gray-900 dark:text-white">{{ passed }} <span class="text-lg font-normal text-gray-400 dark:text-slate-500">of {{ total }} requirements met</span></p>
+            </div>
+            {% if passed == total and total %}{% status_badge "Ready to apply" "success" %}{% else %}{% status_badge "Action needed" "warning" %}{% endif %}
+        </div>
+        <div class="h-2 rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
+            <div class="h-2 rounded-full bg-blue-600" style="width: {% widthratio passed total 100 %}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">Ticked automatically from the licences, certificates and procedures recorded in this module.</p>
+    </div>
+
+    <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-5">
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-400 mb-2">Needs attention</p>
+        {% if alerts %}
+        <ul class="space-y-2 max-h-40 overflow-y-auto text-sm">
+            {% for alert in alerts %}
+            <li class="flex items-start gap-2">
+                <span class="mt-1.5 h-2 w-2 rounded-full shrink-0 {% if alert.tone == 'danger' %}bg-red-500{% else %}bg-amber-500{% endif %}"></span>
+                <a href="{{ alert.url }}" class="text-gray-700 dark:text-slate-200 hover:underline">{{ alert.message }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-gray-400 dark:text-slate-500">Nothing expiring or overdue.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden mb-6">
+    <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">KEBS requirements checklist</h3>
+    </div>
+    <ul class="divide-y divide-gray-100 dark:divide-slate-800">
+        {% for item in checklist %}
+        <li class="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+            <div class="min-w-0">
+                <p class="text-gray-900 dark:text-white">{{ item.label }}</p>
+                <p class="text-xs text-gray-500 dark:text-slate-400">{{ item.detail }}</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                {% if item.ok is None %}{% status_badge "Not tracked yet" "neutral" %}
+                {% elif item.ok %}{% status_badge "Met" "success" %}
+                {% else %}{% status_badge "Action needed" "danger" %}{% endif %}
+                {% if item.url %}<a href="{{ item.url }}" class="text-blue-600 hover:underline">Open</a>{% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Premises requirements</h3>
+        <span class="text-xs text-gray-500 dark:text-slate-400">{{ premises_met }} of {{ premises_total }} confirmed</span>
+    </div>
+    <p class="px-5 pt-3 text-xs text-gray-500 dark:text-slate-400">Physical requirements the system can't check itself. Tick each one once it is in place — the date and your name are kept as evidence.</p>
+    <ul class="divide-y divide-gray-100 dark:divide-slate-800">
+        {% for requirement, form in premises %}
+        <li class="px-5 py-3">
+            <form method="post" action="{% url 'compliance:premises_update' requirement.pk %}" class="flex flex-wrap items-center gap-3 text-sm">
+                {% csrf_token %}
+                <label class="flex items-center gap-2 flex-1 min-w-[16rem] text-gray-900 dark:text-white">
+                    {{ form.is_met }} {{ requirement.description }}
+                </label>
+                <div class="w-56">{{ form.notes }}</div>
+                <button type="submit" class="rounded-md border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800/40 text-gray-700 dark:text-slate-300 text-xs font-medium px-3 py-1.5">Save</button>
+            </form>
+            {% if requirement.is_met and requirement.confirmed_on %}
+            <p class="text-xs text-gray-400 dark:text-slate-500 mt-1 ml-6">Confirmed {{ requirement.confirmed_on|date:"d M Y" }}{% if requirement.confirmed_by %} by {{ requirement.confirmed_by.get_full_name|default:requirement.confirmed_by.username }}{% endif %}</p>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
