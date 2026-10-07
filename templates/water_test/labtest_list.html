@@ -2,6 +2,7 @@
 {% block page_title %}Lab Test Results{% endblock %}
 {% block content %}
 {% include "core/components/page_header.html" with title="Lab Test Results" add_url="water_test:add" add_label="Add Test Result" %}
+<p class="-mt-2 mb-4 text-sm"><a href="{% url 'water_test:import' %}" class="text-blue-600 hover:underline">Import results from Excel or CSV</a></p>
 
 <div class="bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200 dark:divide-slate-700 text-sm">

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block page_title %}Import Lab Results{% endblock %}
+{% block content %}
+<div class="max-w-2xl bg-white/90 dark:bg-slate-800/70 backdrop-blur-sm rounded-xl shadow-md border border-white/60 dark:border-white/10 p-6">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Import lab results</h2>
+    <p class="text-sm text-gray-500 dark:text-slate-400 mb-4">Load results from an Excel (.xlsx) or CSV file. You'll see a preview and any problems before anything is saved.</p>
+
+    <div class="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 text-sm px-3 py-2 mb-5">
+        Only import readings that were actually measured. Lab Test is the quality-control record shown to KEBS, and every row is attributed to the technician named in it.
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="file" class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">File</label>
+            <input type="file" name="file" id="file" accept=".xlsx,.csv" required
+                   class="block w-full text-sm text-gray-600 dark:text-slate-300 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100">
+        </div>
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'water_test:list' %}" class="text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 px-4 py-2">Cancel</a>
+            <button type="submit" class="rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2">Upload and preview</button>
+        </div>
+    </form>
+
+    <div class="mt-6 pt-4 border-t border-gray-100 dark:border-slate-800 text-sm text-gray-600 dark:text-slate-300">
+        <p class="font-medium text-gray-900 dark:text-white mb-2">File format</p>
+        <p class="mb-2">The first row must hold these column headings, one result per row below it (extra columns are ignored):</p>
+        <p class="font-mono text-xs bg-gray-50 dark:bg-slate-900/50 rounded px-3 py-2 mb-3">Date · Sample · Technician · TDS · EC · pH · Salinity · Temp</p>
+        <ul class="list-disc pl-5 space-y-1 text-xs text-gray-500 dark:text-slate-400">
+            <li>Date can include a time (2025-03-14 09:30); with no time it's saved as 00:00. Day-first dates such as 14/03/2025 are accepted.</li>
+            <li>Technician must be one of: Dennis, Joy, Rodgers, Robinson, Virginia, Others.</li>
+            <li>A row is skipped if Lab Test already has the same sample name on the same day. Existing results are never changed.</li>
+            <li>Only impossible values are rejected (such as pH above 14); readings outside the standard's limits are saved as measured.</li>
+            <li>Up to 5,000 rows and 5 MB per file.</li>
+        </ul>
+        <p class="mt-3"><a href="{% url 'water_test:import_template' %}" class="text-blue-600 hover:underline">Download a blank template (CSV)</a></p>
+    </div>
+</div>
+{% endblock %}
